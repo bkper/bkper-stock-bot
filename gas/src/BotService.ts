@@ -60,6 +60,46 @@ namespace BotService {
         return interestAccount || null;
     }
 
+    export function getHistSalePrice(saleTransaction: Bkper.Transaction): Bkper.Amount {
+        return BkperApp.newAmount(saleTransaction.getProperty(SALE_PRICE_HIST_PROP, SALE_PRICE_PROP, PRICE_PROP));
+    }
+
+    export function getSalePrice(saleTransaction: Bkper.Transaction): Bkper.Amount {
+        const fwdSalePriceProp = saleTransaction.getProperty(FWD_SALE_PRICE_PROP);
+        if (fwdSalePriceProp) {
+            return BkperApp.newAmount(fwdSalePriceProp);
+        }
+        return BkperApp.newAmount(saleTransaction.getProperty(SALE_PRICE_PROP, PRICE_PROP));
+    }
+
+    export function getHistSaleExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, saleTransaction: Bkper.Transaction): Bkper.Amount {
+        return getExcRate(baseBook, financialBook, saleTransaction, SALE_EXC_RATE_HIST_PROP, SALE_EXC_RATE_PROP, true);
+    }
+
+    export function getSaleExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, saleTransaction: Bkper.Transaction): Bkper.Amount {
+        return getExcRate(baseBook, financialBook, saleTransaction, FWD_SALE_EXC_RATE_PROP, SALE_EXC_RATE_PROP);
+    }
+
+    export function getHistPurchasePrice(purchaseTransaction: Bkper.Transaction): Bkper.Amount {
+        return BkperApp.newAmount(purchaseTransaction.getProperty(PURCHASE_PRICE_HIST_PROP, PURCHASE_PRICE_PROP, PRICE_PROP));
+    }
+
+    export function getPurchasePrice(purchaseTransaction: Bkper.Transaction): Bkper.Amount {
+        const fwdPurchasePriceProp = purchaseTransaction.getProperty(FWD_PURCHASE_PRICE_PROP);
+        if (fwdPurchasePriceProp) {
+            return BkperApp.newAmount(fwdPurchasePriceProp);
+        }
+        return BkperApp.newAmount(purchaseTransaction.getProperty(PURCHASE_PRICE_PROP, PRICE_PROP));
+    }
+
+    export function getHistPurchaseExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, purchaseTransaction: Bkper.Transaction): Bkper.Amount {
+        return getExcRate(baseBook, financialBook, purchaseTransaction, PURCHASE_EXC_RATE_HIST_PROP, PURCHASE_EXC_RATE_PROP, true);
+    }
+
+    export function getPurchaseExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, purchaseTransaction: Bkper.Transaction): Bkper.Amount {
+        return getExcRate(baseBook, financialBook, purchaseTransaction, FWD_PURCHASE_EXC_RATE_PROP, PURCHASE_EXC_RATE_PROP);
+    }
+
     export function calculateGainBaseNoFX(gainLocal: Bkper.Amount, purchaseRate: Bkper.Amount, saleRate: Bkper.Amount, shortSale: boolean): Bkper.Amount {
         if (!purchaseRate || !saleRate) {
             return BkperApp.newAmount(0);
@@ -85,7 +125,7 @@ namespace BotService {
         return fallbackExcRate;
     }
 
-    export function getExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, stockTransaction: Bkper.Transaction, excRateProp: string): Bkper.Amount {
+    export function getExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, stockTransaction: Bkper.Transaction, excRateProp: string, fallbackExcRateProp?: string, historical?: boolean): Bkper.Amount {
 
         // No base book defined
         if (!BotService.hasBaseBookDefined(financialBook)) {
@@ -102,23 +142,34 @@ namespace BotService {
             return BkperApp.newAmount(stockTransaction.getProperty(excRateProp));
         }
 
+        // Exc rate already set - fallback property
+        if (fallbackExcRateProp && stockTransaction.getProperty(fallbackExcRateProp)) {
+            return BkperApp.newAmount(stockTransaction.getProperty(fallbackExcRateProp));
+        }
+
         // No remote ids
         if (!stockTransaction.getRemoteIds()) {
             return undefined;
         }
 
+        // Get from replicated transaction
         for (const remoteId of stockTransaction.getRemoteIds()) {
             try {
                 const financialTransaction = financialBook.getTransaction(remoteId);
                 const baseIterator = baseBook.getTransactions(`remoteId:${financialTransaction.getId()}`);
                 while (baseIterator.hasNext()) {
                     const baseTransaction = baseIterator.next();
+                    if (historical) {
+                        if (baseTransaction.getProperty(EXC_RATE_HIST_PROP)) {
+                            return BkperApp.newAmount(baseTransaction.getProperty(EXC_RATE_HIST_PROP));
+                        }
+                    }
                     if (baseTransaction.getProperty(EXC_RATE_PROP, 'exc_base_rate')) {
                         return BkperApp.newAmount(baseTransaction.getProperty(EXC_RATE_PROP, 'exc_base_rate'));
                     }
                 }
             } catch (err) {
-                Logger.log(err)
+                Logger.log(err);
             }
         }
 
