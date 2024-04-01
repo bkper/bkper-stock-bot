@@ -181,14 +181,10 @@ namespace RealizedResultsService {
 
         // Sale info: quantity, prices, exchange rates
         let soldQuantity = saleTransaction.getAmount();
-        // const salePrice: Bkper.Amount = BkperApp.newAmount(saleTransaction.getProperty(SALE_PRICE_PROP, PRICE_PROP));
         const salePrice = BotService.getHistSalePrice(saleTransaction);
-        // const fwdSalePrice: Bkper.Amount = saleTransaction.getProperty(FWD_SALE_PRICE_PROP) ? BkperApp.newAmount(saleTransaction.getProperty(FWD_SALE_PRICE_PROP)) : salePrice;
         const fwdSalePrice = BotService.getSalePrice(saleTransaction);
-        // const saleExcRate = BotService.getExcRate(baseBook, financialBook, saleTransaction, SALE_EXC_RATE_PROP);
-        const saleExcRate = BotService.getHistSaleExcRate(baseBook, financialBook, saleTransaction);
-        // const fwdSaleExcRate = BotService.getFwdExcRate(saleTransaction, FWD_SALE_EXC_RATE_PROP, saleExcRate);
-        const fwdSaleExcRate = BotService.getSaleExcRate(baseBook, financialBook, saleTransaction);
+        const saleExcRate = BotService.getExcRate(baseBook, financialBook, saleTransaction, SALE_EXC_RATE_PROP);
+        const fwdSaleExcRate = BotService.getFwdExcRate(saleTransaction, FWD_SALE_EXC_RATE_PROP, saleExcRate);
 
         let purchaseTotal = BkperApp.newAmount(0);
         let saleTotal = BkperApp.newAmount(0);
@@ -239,14 +235,10 @@ namespace RealizedResultsService {
             const shortSale = isShortSale(purchaseTransaction, saleTransaction);
 
             // Purchase info: quantity, prices, exchange rates
-            // const purchaseExcRate = BotService.getExcRate(baseBook, financialBook, purchaseTransaction, PURCHASE_EXC_RATE_PROP);
-            const purchaseExcRate = BotService.getHistPurchaseExcRate(baseBook, financialBook, purchaseTransaction);
-            // const fwdPurchaseExcRate = BotService.getFwdExcRate(purchaseTransaction, FWD_PURCHASE_EXC_RATE_PROP, purchaseExcRate);
-            const fwdPurchaseExcRate = BotService.getPurchaseExcRate(baseBook, financialBook, purchaseTransaction);
-            // const purchasePrice: Bkper.Amount = BkperApp.newAmount(purchaseTransaction.getProperty(PURCHASE_PRICE_PROP, PRICE_PROP));
             const purchasePrice = BotService.getHistPurchasePrice(purchaseTransaction);
-            // const fwdPurchasePrice: Bkper.Amount = purchaseTransaction.getProperty(FWD_PURCHASE_PRICE_PROP) ? BkperApp.newAmount(purchaseTransaction.getProperty(FWD_PURCHASE_PRICE_PROP)) : purchasePrice;
             const fwdPurchasePrice = BotService.getPurchasePrice(purchaseTransaction);
+            const purchaseExcRate = BotService.getExcRate(baseBook, financialBook, purchaseTransaction, PURCHASE_EXC_RATE_PROP);
+            const fwdPurchaseExcRate = BotService.getFwdExcRate(purchaseTransaction, FWD_PURCHASE_EXC_RATE_PROP, purchaseExcRate);
 
             const purchaseQuantity = purchaseTransaction.getAmount();
 

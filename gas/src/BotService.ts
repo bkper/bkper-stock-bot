@@ -72,14 +72,6 @@ namespace BotService {
         return BkperApp.newAmount(saleTransaction.getProperty(SALE_PRICE_PROP, PRICE_PROP));
     }
 
-    export function getHistSaleExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, saleTransaction: Bkper.Transaction): Bkper.Amount {
-        return getExcRate(baseBook, financialBook, saleTransaction, SALE_EXC_RATE_HIST_PROP, SALE_EXC_RATE_PROP, true);
-    }
-
-    export function getSaleExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, saleTransaction: Bkper.Transaction): Bkper.Amount {
-        return getExcRate(baseBook, financialBook, saleTransaction, FWD_SALE_EXC_RATE_PROP, SALE_EXC_RATE_PROP);
-    }
-
     export function getHistPurchasePrice(purchaseTransaction: Bkper.Transaction): Bkper.Amount {
         return BkperApp.newAmount(purchaseTransaction.getProperty(PURCHASE_PRICE_HIST_PROP, PURCHASE_PRICE_PROP, PRICE_PROP));
     }
@@ -90,14 +82,6 @@ namespace BotService {
             return BkperApp.newAmount(fwdPurchasePriceProp);
         }
         return BkperApp.newAmount(purchaseTransaction.getProperty(PURCHASE_PRICE_PROP, PRICE_PROP));
-    }
-
-    export function getHistPurchaseExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, purchaseTransaction: Bkper.Transaction): Bkper.Amount {
-        return getExcRate(baseBook, financialBook, purchaseTransaction, PURCHASE_EXC_RATE_HIST_PROP, PURCHASE_EXC_RATE_PROP, true);
-    }
-
-    export function getPurchaseExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, purchaseTransaction: Bkper.Transaction): Bkper.Amount {
-        return getExcRate(baseBook, financialBook, purchaseTransaction, FWD_PURCHASE_EXC_RATE_PROP, PURCHASE_EXC_RATE_PROP);
     }
 
     export function calculateGainBaseNoFX(gainLocal: Bkper.Amount, purchaseRate: Bkper.Amount, saleRate: Bkper.Amount, shortSale: boolean): Bkper.Amount {
@@ -125,7 +109,7 @@ namespace BotService {
         return fallbackExcRate;
     }
 
-    export function getExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, stockTransaction: Bkper.Transaction, excRateProp: string, fallbackExcRateProp?: string, historical?: boolean): Bkper.Amount {
+    export function getExcRate(baseBook: Bkper.Book, financialBook: Bkper.Book, stockTransaction: Bkper.Transaction, excRateProp: string): Bkper.Amount {
 
         // No base book defined
         if (!BotService.hasBaseBookDefined(financialBook)) {
@@ -142,11 +126,6 @@ namespace BotService {
             return BkperApp.newAmount(stockTransaction.getProperty(excRateProp));
         }
 
-        // Exc rate already set - fallback property
-        if (fallbackExcRateProp && stockTransaction.getProperty(fallbackExcRateProp)) {
-            return BkperApp.newAmount(stockTransaction.getProperty(fallbackExcRateProp));
-        }
-
         // No remote ids
         if (!stockTransaction.getRemoteIds()) {
             return undefined;
@@ -159,11 +138,6 @@ namespace BotService {
                 const baseIterator = baseBook.getTransactions(`remoteId:${financialTransaction.getId()}`);
                 while (baseIterator.hasNext()) {
                     const baseTransaction = baseIterator.next();
-                    if (historical) {
-                        if (baseTransaction.getProperty(EXC_RATE_HIST_PROP)) {
-                            return BkperApp.newAmount(baseTransaction.getProperty(EXC_RATE_HIST_PROP));
-                        }
-                    }
                     if (baseTransaction.getProperty(EXC_RATE_PROP, 'exc_base_rate')) {
                         return BkperApp.newAmount(baseTransaction.getProperty(EXC_RATE_PROP, 'exc_base_rate'));
                     }
