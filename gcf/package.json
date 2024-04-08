@@ -1,6 +1,6 @@
 {
   "name": "stock-bot-gcf",
-  "version": "1.1.12",
+  "version": "1.2.0",
   "license": "MIT",
   "main": "index.js",
   "projectId": "bkper-stock-bot",
