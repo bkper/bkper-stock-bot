@@ -26,7 +26,7 @@ The Stock Bot interacts with the following properties:
 #### Financial Books
 - ```exc_code```: Required - The book exchange code to match the ```stock_exc_code```.
 #### Instruments Book
-- ```stock_historical```: Optional - true/false - Defines if realized results calculations should consider historical costs and rates. If set to false or not present, the last Forward valuation will be used instead. See [Forward Date Service](#forward-date-service).
+- ```stock_historical```: Optional - true/false - Defines if realized results calculations should consider **only** historical costs and rates. If set to false or not present, calculations will consider **both** historical and fair values. For more information, check out this article on [Mark-To-Market vs. Historical Cost accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
 - ```stock_book```: Optional - true/false - Identifies the Instruments book of the collection. If not present, decimal places must be set to 0 (zero) in the book settings.
 
 ### Group Properties
@@ -44,7 +44,8 @@ The Stock Bot interacts with the following properties:
 - ```trade_date```: Required - The date of the stock operation.
 - ```order```: Optional - The order of the operation, if multiple operations happened in the same day.
 - ```fees```: Optional - The value included in the transaction amount corresponding to fees. 
-- ```interest```: Optional - The value included in the transaction amount corresponding to interests. 
+- ```interest```: Optional - The value included in the transaction amount corresponding to interests.
+- ```cost_hist```: Optional - The historical amount representing the cost of the transaction.
 
 
 ## Realized Results Service
@@ -74,7 +75,7 @@ In order to [close a period](https://help.bkper.com/en/articles/6000644-closing-
 
 Each unchecked transaction will have its date, price and exchange rate updated to the current valuation, leaving a log of its previous state behind. When the last instrument is successfully forwarded a closing date will be set on the Stock Book one day before the Forward Date.
 
-Once an instrument is forwarded, future FIFO calculations will consider the new Forward valuation. In order to keep calculating gains/losses over the historical basis, the property ```stock_historical``` must be ```true``` on the Instruments Book.
+Once an instrument is forwarded, future FIFO calculations will consider the new Forward valuation. In order to calculate gains/losses only over the historical basis, the property ```stock_historical``` must be ```true``` on the Instruments Book.
 
 When forwarding instruments, the Stock Bot also adds the following properties to the forwarded transactions:
 
