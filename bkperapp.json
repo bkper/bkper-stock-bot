@@ -47,7 +47,8 @@
         "interest",
         "fees",
         "instrument",
-        "trade_date"
+        "trade_date",
+        "cost_hist"
       ]
     },
     "group": {
