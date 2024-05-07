@@ -22,7 +22,7 @@ export abstract class EventHandler {
 
     let stockBook = getStockBook(baseBook);
 
-    const logtag = `Handling ${event.type} event on book ${baseBook.getName()} from user ${event.user.username}`;
+    const logtag = `Handling ${event.type} event on book ${baseBook.getName()} from user ${event.user.username} ${Math.random()}`;
     console.time(logtag);
 
     if (stockBook) {
