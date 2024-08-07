@@ -1,5 +1,5 @@
 import { Book, Transaction } from "bkper";
-import { flagStockAccountForRebuildIfNeeded, getStockBook, getBaseBook } from "./BotService";
+import { flagStockAccountForRebuildIfNeeded, getStockBook, getBaseBook, isHistorical } from "./BotService";
 
 export abstract class InterceptorOrderProcessorDelete {
 
@@ -7,9 +7,17 @@ export abstract class InterceptorOrderProcessorDelete {
     if (!book) {
       return;
     }
+    // Fair
     this.cascadeDeleteTransactions(book, transaction, ``);
     this.cascadeDeleteTransactions(book, transaction, `mtm_`);
     this.cascadeDeleteTransactions(getBaseBook(book), transaction, `fx_`);
+    // Hist
+    const stockBook = getStockBook(book);
+    if (!isHistorical(stockBook)) {
+      this.cascadeDeleteTransactions(book, transaction, `hist_`);
+      this.cascadeDeleteTransactions(book, transaction, `mtm_hist_`);
+      this.cascadeDeleteTransactions(getBaseBook(book), transaction, `fx_hist_`);
+    }
   }
 
   protected async cascadeDeleteTransactions(book: Book, remoteTx: bkper.Transaction, prefix: string) {

@@ -1,5 +1,5 @@
 import { Account, AccountType, Bkper, Book, Group, Transaction } from 'bkper';
-import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP } from './constants';
+import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP, STOCK_HISTORICAL_PROP } from './constants';
 
 export function isStockBook(book: Book): boolean {
   if (book.getProperty(STOCK_BOOK_PROP)) {
@@ -162,5 +162,13 @@ export async function isPurchase(transaction: Transaction): Promise<boolean> {
 
 export function getExcCode(book: Book): string {
   return book.getProperty(EXC_CODE_PROP, 'exchange_code');
+}
+
+export function isHistorical(stockBook: Book): boolean {
+  const stockHistoricalProp = stockBook.getProperty(STOCK_HISTORICAL_PROP);
+  if (stockHistoricalProp && stockHistoricalProp.toLowerCase() === 'true') {
+    return true;
+  }
+  return false;
 }
 
