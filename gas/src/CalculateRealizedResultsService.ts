@@ -9,7 +9,8 @@ namespace RealizedResultsService {
 
         let stockAccount = new StockAccount(stockBook.getAccount(stockAccountId));
 
-        let historical = stockBook.getProperty(STOCK_HISTORICAL_PROP) && stockBook.getProperty(STOCK_HISTORICAL_PROP).toLowerCase() == 'true' ? true : false;
+        // Calculation model
+        const model = BotService.getCalculationModel(stockBook);
 
         const summary = new Summary(stockAccount.getId());
 
@@ -57,7 +58,7 @@ namespace RealizedResultsService {
         // Process sales
         for (const saleTransaction of stockAccountSaleTransactions) {
             if (stockAccountPurchaseTransactions.length > 0) {
-                processSale(baseBook, financialBook, stockExcCode, stockBook, stockAccount, saleTransaction, stockAccountPurchaseTransactions, summary, autoMtM, historical, processor);
+                processSale(baseBook, financialBook, stockExcCode, stockBook, stockAccount, saleTransaction, stockAccountPurchaseTransactions, summary, autoMtM, model, processor);
             }
             // Abort if any transaction is locked
             if (processor.hasLockedTransaction()) {
@@ -174,7 +175,19 @@ namespace RealizedResultsService {
         return BotService.compareToFIFO(saleTransaction, purchaseTransaction) < 0;
     }
 
-    function processSale(baseBook: Bkper.Book, financialBook: Bkper.Book, stockExcCode: string, stockBook: Bkper.Book, stockAccount: StockAccount, saleTransaction: Bkper.Transaction, purchaseTransactions: Bkper.Transaction[], summary: Summary, autoMtM: boolean, historical: boolean, processor: CalculateRealizedResultsProcessor): void {
+    function processSale(
+        baseBook: Bkper.Book,
+        financialBook: Bkper.Book,
+        stockExcCode: string,
+        stockBook: Bkper.Book,
+        stockAccount: StockAccount,
+        saleTransaction: Bkper.Transaction,
+        purchaseTransactions: Bkper.Transaction[],
+        summary: Summary,
+        autoMtM: boolean,
+        model: CalculationModel,
+        processor: CalculateRealizedResultsProcessor
+    ): void {
 
         // Log operation status
         console.log(`processing sale: ${saleTransaction.getId()}`);
@@ -206,8 +219,8 @@ namespace RealizedResultsService {
         const unrealizedAccount = getUnrealizedAccount(financialBook, stockAccount);
         const unrealizedFxBaseAccount = getUnrealizedFxBaseAccount(baseBook, stockAccount, excAggregateProp);
         // Unrealized Hist accounts - NOT NEEDED IF BOOK IS HISTORICAL
-        const unrealizedHistAccount = historical ? null : getUnrealizedHistAccount(financialBook, stockAccount);
-        const unrealizedFxHistBaseAccount = historical ? null : getUnrealizedFxHistBaseAccount(baseBook, stockAccount, excAggregateProp);
+        const unrealizedHistAccount = (model === CalculationModel.HISTORICAL_ONLY) ? null : getUnrealizedHistAccount(financialBook, stockAccount);
+        const unrealizedFxHistBaseAccount = (model === CalculationModel.HISTORICAL_ONLY) ? null : getUnrealizedFxHistBaseAccount(baseBook, stockAccount, excAggregateProp);
 
         let purchaseLogEntries: PurchaseLogEntry[] = [];
         let fwdPurchaseLogEntries: PurchaseLogEntry[] = [];
@@ -301,7 +314,7 @@ namespace RealizedResultsService {
                         .setProperty(SALE_DATE_PROP, saleTransaction.getProperty(DATE_PROP) || saleTransaction.getDate())
                         .setProperty(SHORT_SALE_PROP, 'true')
                     ;
-                    if (historical) {
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
                         // Record Historical gain (using the same prop key as before)
                         purchaseTransaction.setProperty(GAIN_AMOUNT_PROP, histGain.toString());
                     } else {
@@ -321,7 +334,7 @@ namespace RealizedResultsService {
                 processor.setStockBookTransactionToUpdate(purchaseTransaction);
 
                 if (shortSale) {
-                    if (historical) {
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
                         // Record Historical results (using the same accounts and remoteIds as before)
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, purchaseTransaction, histGain, histGainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, purchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, false, processor);
@@ -400,7 +413,7 @@ namespace RealizedResultsService {
                         .setProperty(SALE_DATE_PROP, saleTransaction.getProperty(DATE_PROP) || saleTransaction.getDate())
                         .setProperty(SHORT_SALE_PROP, 'true')
                     ;
-                    if (historical) {
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
                         // Record Historical gain (using the same prop key as before)
                         splittedPurchaseTransaction.setProperty(GAIN_AMOUNT_PROP, histGain.toString());
                     } else {
@@ -423,7 +436,7 @@ namespace RealizedResultsService {
                 processor.setStockBookTransactionToCreate(splittedPurchaseTransaction);
 
                 if (shortSale) {
-                    if (historical) {
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
                         // Record Historical results (using the same accounts and remoteIds as before)
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, splittedPurchaseTransaction, histGain, histGainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, splittedPurchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, false, processor);
@@ -497,7 +510,7 @@ namespace RealizedResultsService {
                     .setProperty(PURCHASE_LOG_PROP, JSON.stringify(purchaseLogEntries))
                     .setProperty(SALE_EXC_RATE_PROP, saleExcRate?.toString())
                 ;
-                if (historical) {
+                if (model === CalculationModel.HISTORICAL_ONLY) {
                     // Record Historical gain (using the same prop key as before)
                     saleTransaction.setProperty(GAIN_AMOUNT_PROP, histGainTotal.toString());
                 } else {
@@ -559,7 +572,7 @@ namespace RealizedResultsService {
                         .setProperty(SALE_AMOUNT_PROP, saleTotal.toString())
                         .setProperty(PURCHASE_LOG_PROP, JSON.stringify(purchaseLogEntries))
                     ;
-                    if (historical) {
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
                         // Record Historical gain (using the same prop key as before)
                         splittedSaleTransaction.setProperty(GAIN_AMOUNT_PROP, histGainTotal.toString());
                     } else {
@@ -591,7 +604,7 @@ namespace RealizedResultsService {
 
         }
 
-        if (historical) {
+        if (model === CalculationModel.HISTORICAL_ONLY) {
             // Record Historical results (using the same accounts and remoteIds as before)
             addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, saleTransaction, histGainTotal, histGainBaseNoFxTotal, false, processor);
             addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, saleTransaction, histGainBaseWithFxTotal, histGainBaseNoFxTotal, summary, false, processor);
