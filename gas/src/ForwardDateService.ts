@@ -197,8 +197,8 @@ namespace ForwardDateService {
         const urBalanceBase = getAccountBalance(urBaseBookBalancesReport, `${stockAccount.getName()} ${UNREALIZED_SUFFIX}`);
 
         // Record "Forwarded Results" (Unrealized account gap) - DO NOT RECORD IF BOOK IS HISTORICAL
-        const isHistorical = (stockBook.getProperty(STOCK_HISTORICAL_PROP) && stockBook.getProperty(STOCK_HISTORICAL_PROP).toLowerCase() === 'true') ? true : false;
-        if (!isHistorical && liquidationTxId && !urBalanceLocal.eq(0)) {
+        const model = BotService.getCalculationModel(stockBook);
+        if (model !== CalculationModel.HISTORICAL_ONLY && liquidationTxId && !urBalanceLocal.eq(0)) {
             const forwardedResultTransaction = buildForwardedResultTransaction(financialBook, baseBook, stockAccount, closingDate, urBalanceLocal, urBalanceBase);
             forwardedResultTransaction
                 .addRemoteId(`fwd_${liquidationTxId}`)
