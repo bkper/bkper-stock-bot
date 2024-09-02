@@ -1,5 +1,5 @@
 import { Account, AccountType, Bkper, Book, Group, Transaction } from 'bkper';
-import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP, STOCK_HISTORICAL_PROP } from './constants';
+import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP, STOCK_FAIR_PROP, STOCK_HISTORICAL_PROP } from './constants';
 
 export function isStockBook(book: Book): boolean {
   if (book.getProperty(STOCK_BOOK_PROP)) {
@@ -164,11 +164,30 @@ export function getExcCode(book: Book): string {
   return book.getProperty(EXC_CODE_PROP, 'exchange_code');
 }
 
-export function isHistorical(stockBook: Book): boolean {
+function isFlaggedAsHistorical(stockBook: Book): boolean {
   const stockHistoricalProp = stockBook.getProperty(STOCK_HISTORICAL_PROP);
-  if (stockHistoricalProp && stockHistoricalProp.toLowerCase() === 'true') {
-    return true;
-  }
-  return false;
+  return stockHistoricalProp && stockHistoricalProp.trim().toLowerCase() === 'true' ? true : false;
 }
 
+function isFlaggedAsFair(stockBook: Book): boolean {
+  const stockFairProp = stockBook.getProperty(STOCK_FAIR_PROP);
+  return stockFairProp && stockFairProp.trim().toLowerCase() === 'true' ? true : false;
+}
+
+function isHistoricalOnly(stockBook: Book): boolean {
+  return isFlaggedAsHistorical(stockBook) && !isFlaggedAsFair(stockBook);
+}
+
+function isFairOnly(stockBook: Book): boolean {
+  return isFlaggedAsFair(stockBook) && !isFlaggedAsHistorical(stockBook);
+}
+
+export function getCalculationModel(stockBook: Book): CalculationModel {
+  if (isHistoricalOnly(stockBook)) {
+      return CalculationModel.HISTORICAL_ONLY;
+  }
+  if (isFairOnly(stockBook)) {
+      return CalculationModel.FAIR_ONLY;
+  }
+  return CalculationModel.BOTH;
+}
