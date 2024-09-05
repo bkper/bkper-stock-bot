@@ -1,4 +1,5 @@
 import { Book, Transaction } from "bkper";
+import { CalculationModel } from './CalculationModel';
 import { flagStockAccountForRebuildIfNeeded, getStockBook, getBaseBook, getCalculationModel } from "./BotService";
 
 export abstract class InterceptorOrderProcessorDelete {

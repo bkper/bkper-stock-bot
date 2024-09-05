@@ -1,6 +1,7 @@
 import { Account, AccountType, Amount, Book } from "bkper";
 import { Result } from ".";
-import { isStockBook } from "./BotService";
+import { isStockBook, getStockBook, getCalculationModel } from "./BotService";
+import { CalculationModel } from './CalculationModel';
 import { COST_HIST_PROP, FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, ORDER_PROP, PRICE_HIST_PROP, PRICE_PROP, QUANTITY_PROP, SETTLEMENT_DATE, STOCK_FEES_ACCOUNT_PROP, TRADE_DATE_PROP } from "./constants";
 
 export class InterceptorOrderProcessor {
@@ -43,27 +44,28 @@ export class InterceptorOrderProcessor {
     }
 
     protected async processSale(baseBook: Book, transactionPayload: bkper.Transaction): Promise<Result> {
+        const stockBook = getStockBook(baseBook);
+        const model = getCalculationModel(stockBook);
         let exchangeAccount = this.getExchangeAccountOnSale(baseBook, transactionPayload);
-
         let responses: string[] = await Promise.all(
             [
                 this.postFees(baseBook, exchangeAccount, transactionPayload),
                 this.postInterestOnSale(baseBook, exchangeAccount, transactionPayload),
-                this.postInstrumentTradeOnSale(baseBook, exchangeAccount, transactionPayload)
+                this.postInstrumentTradeOnSale(baseBook, exchangeAccount, transactionPayload, model)
             ]);
-
         responses = responses.filter(r => r != null).filter(r => typeof r === "string")
-
         return { result: responses };
     }
 
     protected async processPurchase(baseBook: Book, transactionPayload: bkper.Transaction): Promise<Result> {
+        const stockBook = getStockBook(baseBook);
+        const model = getCalculationModel(stockBook);
         let exchangeAccount = this.getExchangeAccountOnPurchase(baseBook, transactionPayload);
         let responses: string[] = await Promise.all(
             [
                 this.postFees(baseBook, exchangeAccount, transactionPayload),
                 this.postInterestOnPurchase(baseBook, exchangeAccount, transactionPayload),
-                this.postInstrumentTradeOnPurchase(baseBook, exchangeAccount, transactionPayload)
+                this.postInstrumentTradeOnPurchase(baseBook, exchangeAccount, transactionPayload, model)
             ]);
         responses = responses.filter(r => r != null).filter(r => typeof r === "string")
         return { result: responses };
@@ -250,7 +252,7 @@ export class InterceptorOrderProcessor {
         return null;
     }
 
-    protected async postInstrumentTradeOnPurchase(baseBook: Book, exchangeAccount: bkper.Account, transactionPayload: bkper.Transaction): Promise<string> {
+    protected async postInstrumentTradeOnPurchase(baseBook: Book, exchangeAccount: bkper.Account, transactionPayload: bkper.Transaction, model: CalculationModel): Promise<string> {
         let instrumentAccount = await this.getInstrumentAccount(baseBook, transactionPayload);
         let quantity = this.getQuantity(baseBook, transactionPayload);
         let fees = this.getFees(baseBook, transactionPayload);
@@ -259,8 +261,7 @@ export class InterceptorOrderProcessor {
         let tradeDate = this.getTradeDate(transactionPayload);
         const amount = new Amount(transactionPayload.amount).minus(interest).minus(fees);
         const price = amount.div(quantity);
-        const priceHist = this.getPurchasePriceHist(transactionPayload, interest, fees, quantity);
-        let tx = await baseBook.newTransaction()
+        let tx = baseBook.newTransaction()
             .setAmount(amount)
             .from(exchangeAccount)
             .to(instrumentAccount)
@@ -268,13 +269,18 @@ export class InterceptorOrderProcessor {
             .setDate(tradeDate)
             .setProperty(QUANTITY_PROP, quantity.toString())
             .setProperty(PRICE_PROP, price.toString())
-            .setProperty(PRICE_HIST_PROP, priceHist?.toString())
             .setProperty(ORDER_PROP, order)
             .setProperty(SETTLEMENT_DATE, transactionPayload.date)
             .setProperty(FEES_PROP, fees.toString())
             .setProperty(INTEREST_PROP, interest.toString())
-            .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`)
-            .post();
+            .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`);
+        if (model === CalculationModel.BOTH) {
+            const priceHist = this.getPurchasePriceHist(transactionPayload, interest, fees, quantity);
+            if (priceHist && !priceHist.eq(0)) {
+                tx.setProperty(PRICE_HIST_PROP, priceHist.toString());
+            }
+        }
+        tx = await tx.post();
         return `${tx.getDate()} ${tx.getAmount()} ${await tx.getCreditAccountName()} ${await tx.getDebitAccountName()} ${tx.getDescription()}`;
     }
 
@@ -288,7 +294,7 @@ export class InterceptorOrderProcessor {
         return null;
     }
 
-    protected async postInstrumentTradeOnSale(baseBook: Book, exchangeAccount: bkper.Account, transactionPayload: bkper.Transaction): Promise<string> {
+    protected async postInstrumentTradeOnSale(baseBook: Book, exchangeAccount: bkper.Account, transactionPayload: bkper.Transaction, model: CalculationModel): Promise<string> {
         let instrumentAccount = await this.getInstrumentAccount(baseBook, transactionPayload);
         let quantity = this.getQuantity(baseBook, transactionPayload);
         let fees = this.getFees(baseBook, transactionPayload);
@@ -297,8 +303,7 @@ export class InterceptorOrderProcessor {
         let tradeDate = this.getTradeDate(transactionPayload);
         const amount = new Amount(transactionPayload.amount).minus(interest).plus(fees);
         const price = amount.div(quantity);
-        const priceHist = this.getSalePriceHist(transactionPayload, interest, fees, quantity);
-        let tx = await baseBook.newTransaction()
+        let tx = baseBook.newTransaction()
             .setAmount(amount)
             .from(instrumentAccount)
             .to(exchangeAccount)
@@ -306,13 +311,18 @@ export class InterceptorOrderProcessor {
             .setDate(tradeDate)
             .setProperty(QUANTITY_PROP, quantity.toString())
             .setProperty(PRICE_PROP, price.toString())
-            .setProperty(PRICE_HIST_PROP, priceHist?.toString())
             .setProperty(ORDER_PROP, order)
             .setProperty(SETTLEMENT_DATE, transactionPayload.date)
             .setProperty(FEES_PROP, fees.toString())
             .setProperty(INTEREST_PROP, interest.toString())
-            .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`)
-            .post();
+            .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`);
+        if (model === CalculationModel.BOTH) {
+            const priceHist = this.getSalePriceHist(transactionPayload, interest, fees, quantity);
+            if (priceHist && !priceHist.eq(0)) {
+                tx.setProperty(PRICE_HIST_PROP, priceHist.toString());
+            }
+        }
+        tx = await tx.post();
         return `${tx.getDate()} ${tx.getAmount()} ${await tx.getCreditAccountName()} ${await tx.getDebitAccountName()} ${tx.getDescription()}`;
     }
 
