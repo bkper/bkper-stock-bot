@@ -1,21 +1,30 @@
-import 'source-map-support/register'
+import 'source-map-support/register.js'
 import { HttpFunction } from '@google-cloud/functions-framework/build/src/functions';
-import { Bkper } from 'bkper';
+import { Bkper } from 'bkper-js';
+import { getOAuthToken } from 'bkper';
 import { Request, Response } from 'express';
-import express = require('express');
-import httpContext = require('express-http-context');
-import { EventHandlerTransactionPosted } from './EventHandlerTransactionPosted';
-import { EventHandlerTransactionChecked } from './EventHandlerTransactionChecked';
-import { EventHandlerTransactionUnchecked } from './EventHandlerTransactionUnchecked';
-import { EventHandlerTransactionUpdated } from './EventHandlerTransactionUpdated';
-import { EventHandlerTransactionDeleted } from './EventHandlerTransactionDeleted';
-import { EventHandlerTransactionRestored } from './EventHandlerTransactionRestored';
-import { EventHandlerAccountCreatedOrUpdated } from './EventHandlerAccountCreatedOrUpdated';
-import { EventHandlerAccountDeleted } from './EventHandlerAccountDeleted';
-import { EventHandlerGroupCreatedOrUpdated } from './EventHandlerGroupCreatedOrUpdated';
-import { EventHandlerBookUpdated } from './EventHandlerBookUpdated';
+import express from 'express';
+import httpContext from 'express-http-context';
 
-require('dotenv').config({path:`${__dirname}/../../.env`})
+import { EventHandlerTransactionPosted } from './EventHandlerTransactionPosted.js';
+import { EventHandlerTransactionChecked } from './EventHandlerTransactionChecked.js';
+import { EventHandlerTransactionUnchecked } from './EventHandlerTransactionUnchecked.js';
+import { EventHandlerTransactionUpdated } from './EventHandlerTransactionUpdated.js';
+import { EventHandlerTransactionDeleted } from './EventHandlerTransactionDeleted.js';
+import { EventHandlerTransactionRestored } from './EventHandlerTransactionRestored.js';
+import { EventHandlerAccountCreatedOrUpdated } from './EventHandlerAccountCreatedOrUpdated.js';
+import { EventHandlerAccountDeleted } from './EventHandlerAccountDeleted.js';
+import { EventHandlerGroupCreatedOrUpdated } from './EventHandlerGroupCreatedOrUpdated.js';
+import { EventHandlerBookUpdated } from './EventHandlerBookUpdated.js';
+
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+
+dotenv.config({ path: `${__dirname}/../../.env` });
 
 const app = express();
 app.use(httpContext.middleware);
@@ -23,22 +32,22 @@ app.use('/', handleEvent);
 export const doPost: HttpFunction = app;
 
 export type Result = {
-    result?: string[] | string | boolean,
-    error?: string,
-    warning?: string
+  result?: string[] | string | boolean,
+  error?: string,
+  warning?: string
 }
 
 function init(req: Request, res: Response) {
   res.setHeader('Content-Type', 'application/json');
 
-  //Sets API key from env for development or from headers
-  Bkper.setApiKey(process.env.BKPER_API_KEY ? process.env.BKPER_API_KEY : req.headers['bkper-api-key'] as string);
-
   //Put OAuth token from header in the http context for later use when calling the API. https://julio.li/b/2016/10/29/request-persistence-express/
   const oauthTokenHeader = 'bkper-oauth-token';
   httpContext.set(oauthTokenHeader, req.headers[oauthTokenHeader]);
-  Bkper.setOAuthTokenProvider(async () => httpContext.get(oauthTokenHeader));
 
+  Bkper.setConfig({
+    oauthTokenProvider: async () => httpContext.get(oauthTokenHeader) || getOAuthToken(),
+    apiKeyProvider: async () => process.env.BKPER_API_KEY || req.headers['bkper-api-key'] as string
+  })
 }
 
 async function handleEvent(req: Request, res: Response) {
@@ -99,7 +108,7 @@ async function handleEvent(req: Request, res: Response) {
 
   } catch (err: any) {
     console.error(err);
-    res.send(response({error: err.stack ? err.stack.split("\n") : err}))
+    res.send(response({ error: err.stack ? err.stack.split("\n") : err }))
   }
 
 }

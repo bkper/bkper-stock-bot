@@ -1,9 +1,9 @@
-import { Account, AccountType, Amount, Book, Transaction } from "bkper";
-import { Result } from ".";
-import { getRealizedDateValue, getStockExchangeCode } from "./BotService";
-import * as constants from "./constants";
-import { EventHandlerTransaction } from "./EventHandlerTransaction";
-import { InterceptorFlagRebuild } from "./InterceptorFlagRebuild";
+import { Account, AccountType, Amount, Book, Transaction } from "bkper-js";
+import { Result } from "./index.js";
+import { getRealizedDateValue, getStockExchangeCode } from "./BotService.js";
+import * as constants from "./constants.js";
+import { EventHandlerTransaction } from "./EventHandlerTransaction.js";
+import { InterceptorFlagRebuild } from "./InterceptorFlagRebuild.js";
 
 export class EventHandlerTransactionChecked extends EventHandlerTransaction {
 

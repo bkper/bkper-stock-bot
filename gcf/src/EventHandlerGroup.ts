@@ -1,7 +1,7 @@
-import { Book, Group } from "bkper";
-import { getExcCode } from "./BotService";
-import { STOCK_EXC_CODE_PROP } from "./constants";
-import { EventHandler } from "./EventHandler";
+import { Book, Group } from "bkper-js";
+import { getExcCode } from "./BotService.js";
+import { STOCK_EXC_CODE_PROP } from "./constants.js";
+import { EventHandler } from "./EventHandler.js";
 
 export abstract class EventHandlerGroup extends EventHandler {
 

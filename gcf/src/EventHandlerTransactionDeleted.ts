@@ -1,9 +1,9 @@
-import { Book, Transaction } from "bkper";
-import { flagStockAccountForRebuildIfNeeded, isStockBook } from "./BotService";
-import { EventHandlerTransaction } from "./EventHandlerTransaction";
-import { InterceptorOrderProcessorDeleteInstruments } from "./InterceptorOrderProcessorDeleteInstruments";
-import { InterceptorOrderProcessorDeleteFinancial } from "./InterceptorOrderProcessorDeleteFinancial";
-import { Result } from ".";
+import { Book, Transaction } from "bkper-js";
+import { flagStockAccountForRebuildIfNeeded, isStockBook } from "./BotService.js";
+import { EventHandlerTransaction } from "./EventHandlerTransaction.js";
+import { InterceptorOrderProcessorDeleteInstruments } from "./InterceptorOrderProcessorDeleteInstruments.js";
+import { InterceptorOrderProcessorDeleteFinancial } from "./InterceptorOrderProcessorDeleteFinancial.js";
+import { Result } from "./index.js";
 
 export class EventHandlerTransactionDeleted extends EventHandlerTransaction {
 

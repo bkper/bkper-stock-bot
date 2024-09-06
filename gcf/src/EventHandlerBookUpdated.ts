@@ -1,7 +1,7 @@
-import { Book } from "bkper";
-import { STOCK_HISTORICAL_PROP, EXC_HISTORICAL_PROP, STOCK_BOOK_PROP } from "./constants";
-import { EventHandler } from "./EventHandler";
-import { isStockBook, getBaseBook } from "./BotService";
+import { Book } from "bkper-js";
+import { STOCK_HISTORICAL_PROP, EXC_HISTORICAL_PROP, STOCK_BOOK_PROP } from "./constants.js";
+import { EventHandler } from "./EventHandler.js";
+import { isStockBook, getBaseBook } from "./BotService.js";
 
 export class EventHandlerBookUpdated extends EventHandler {
 

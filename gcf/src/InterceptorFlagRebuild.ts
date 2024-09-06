@@ -1,7 +1,7 @@
-import { Book } from "bkper";
-import { Result } from ".";
-import { getStockAccount, isStockBook } from "./BotService";
-import { NEEDS_REBUILD_PROP } from "./constants";
+import { Book } from "bkper-js";
+import { Result } from "./index.js";
+import { getStockAccount, isStockBook } from "./BotService.js";
+import { NEEDS_REBUILD_PROP } from "./constants.js";
 
 export class InterceptorFlagRebuild {
 

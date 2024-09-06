@@ -1,6 +1,6 @@
-import { Account, AccountType, Bkper, Book, Group, Transaction } from 'bkper';
-import { CalculationModel } from './CalculationModel';
-import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP, STOCK_FAIR_PROP, STOCK_HISTORICAL_PROP } from './constants';
+import { Account, AccountType, Bkper, Book, Group, Transaction } from 'bkper-js';
+import { CalculationModel } from './CalculationModel.js';
+import { EXC_BASE_PROP, EXC_CODE_PROP, LEGACY_REALIZED_DATE_PROP, NEEDS_REBUILD_PROP, REALIZED_DATE_PROP, STOCK_BOOK_PROP, STOCK_EXC_CODE_PROP, STOCK_FAIR_PROP, STOCK_HISTORICAL_PROP } from './constants.js';
 
 export function isStockBook(book: Book): boolean {
   if (book.getProperty(STOCK_BOOK_PROP)) {

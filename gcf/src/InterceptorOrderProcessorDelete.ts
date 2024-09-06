@@ -1,6 +1,6 @@
-import { Book, Transaction } from "bkper";
-import { CalculationModel } from './CalculationModel';
-import { flagStockAccountForRebuildIfNeeded, getStockBook, getBaseBook, getCalculationModel } from "./BotService";
+import { Book, Transaction } from "bkper-js";
+import { CalculationModel } from './CalculationModel.js';
+import { flagStockAccountForRebuildIfNeeded, getStockBook, getBaseBook, getCalculationModel } from "./BotService.js";
 
 export abstract class InterceptorOrderProcessorDelete {
 

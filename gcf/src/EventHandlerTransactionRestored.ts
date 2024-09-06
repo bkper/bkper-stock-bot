@@ -1,7 +1,7 @@
-import { Book, Transaction } from "bkper";
-import { Result } from ".";
-import { EventHandlerTransaction } from "./EventHandlerTransaction";
-import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor";
+import { Book, Transaction } from "bkper-js";
+import { Result } from "./index.js";
+import { EventHandlerTransaction } from "./EventHandlerTransaction.js";
+import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor.js";
 
 export class EventHandlerTransactionRestored extends EventHandlerTransaction {
 

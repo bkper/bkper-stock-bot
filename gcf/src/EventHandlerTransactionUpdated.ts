@@ -1,10 +1,10 @@
-import { Amount, Book, Transaction } from "bkper";
-import { Result } from ".";
-import { flagStockAccountForRebuildIfNeeded, isPurchase, isSale } from "./BotService";
-import { ORIGINAL_AMOUNT_PROP, ORIGINAL_QUANTITY_PROP, PURCHASE_PRICE_PROP, SALE_PRICE_PROP } from "./constants";
-import { EventHandlerTransaction } from "./EventHandlerTransaction";
-import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor";
-import { InterceptorOrderProcessorDeleteFinancial } from "./InterceptorOrderProcessorDeleteFinancial";
+import { Amount, Book, Transaction } from "bkper-js";
+import { Result } from "./index.js";
+import { flagStockAccountForRebuildIfNeeded, isPurchase, isSale } from "./BotService.js";
+import { ORIGINAL_AMOUNT_PROP, ORIGINAL_QUANTITY_PROP, PURCHASE_PRICE_PROP, SALE_PRICE_PROP } from "./constants.js";
+import { EventHandlerTransaction } from "./EventHandlerTransaction.js";
+import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor.js";
+import { InterceptorOrderProcessorDeleteFinancial } from "./InterceptorOrderProcessorDeleteFinancial.js";
 
 export class EventHandlerTransactionUpdated extends EventHandlerTransaction {
 

@@ -1,8 +1,8 @@
-import { Account, AccountType, Amount, Book } from "bkper";
-import { Result } from ".";
-import { isStockBook, getStockBook, getCalculationModel } from "./BotService";
-import { CalculationModel } from './CalculationModel';
-import { COST_HIST_PROP, FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, ORDER_PROP, PRICE_HIST_PROP, PRICE_PROP, QUANTITY_PROP, SETTLEMENT_DATE, STOCK_FEES_ACCOUNT_PROP, TRADE_DATE_PROP } from "./constants";
+import { Account, AccountType, Amount, Book } from "bkper-js";
+import { Result } from "./index.js";
+import { isStockBook, getStockBook, getCalculationModel } from "./BotService.js";
+import { CalculationModel } from './CalculationModel.js';
+import { COST_HIST_PROP, FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, ORDER_PROP, PRICE_HIST_PROP, PRICE_PROP, QUANTITY_PROP, SETTLEMENT_DATE, STOCK_FEES_ACCOUNT_PROP, TRADE_DATE_PROP } from "./constants.js";
 
 export class InterceptorOrderProcessor {
 

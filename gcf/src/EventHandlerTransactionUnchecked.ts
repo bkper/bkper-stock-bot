@@ -1,6 +1,6 @@
-import { Bkper } from "bkper";
-import { Result } from ".";
-import { InterceptorFlagRebuild } from "./InterceptorFlagRebuild";
+import { Bkper } from "bkper-js";
+import { Result } from "./index.js";
+import { InterceptorFlagRebuild } from "./InterceptorFlagRebuild.js";
 
 export class EventHandlerTransactionUnchecked {
 

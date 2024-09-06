@@ -1,6 +1,6 @@
-import { Bkper } from "bkper";
-import { Result } from ".";
-import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor";
+import { Bkper } from "bkper-js";
+import { Result } from "./index.js";
+import { InterceptorOrderProcessor } from "./InterceptorOrderProcessor.js";
 
 export class EventHandlerTransactionPosted {
 

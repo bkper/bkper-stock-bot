@@ -1,8 +1,8 @@
-import { Book } from "bkper";
-import { Result } from ".";
-import { flagStockAccountForRebuildIfNeeded, getStockBook } from "./BotService";
-import { FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, STOCK_BOT_AGENT_ID, STOCK_GAIN_HASHTAG, STOCK_LOSS_HASHTAG, EXCHANGE_GAIN_HASHTAG, EXCHANGE_LOSS_HASHTAG, FX_PREFIX } from "./constants";
-import { InterceptorOrderProcessorDelete } from "./InterceptorOrderProcessorDelete";
+import { Book } from "bkper-js";
+import { Result } from "./index.js";
+import { flagStockAccountForRebuildIfNeeded, getStockBook } from "./BotService.js";
+import { FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, STOCK_BOT_AGENT_ID, STOCK_GAIN_HASHTAG, STOCK_LOSS_HASHTAG, EXCHANGE_GAIN_HASHTAG, EXCHANGE_LOSS_HASHTAG, FX_PREFIX } from "./constants.js";
+import { InterceptorOrderProcessorDelete } from "./InterceptorOrderProcessorDelete.js";
 
 export class InterceptorOrderProcessorDeleteFinancial extends InterceptorOrderProcessorDelete {
 

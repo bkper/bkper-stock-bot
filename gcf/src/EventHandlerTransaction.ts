@@ -1,7 +1,7 @@
-import { Amount, Book, Transaction } from "bkper";
-import { getExcCode, getStockExchangeCode } from "./BotService";
-import { QUANTITY_PROP } from "./constants";
-import { EventHandler } from "./EventHandler";
+import { Amount, Book, Transaction } from "bkper-js";
+import { getExcCode, getStockExchangeCode } from "./BotService.js";
+import { QUANTITY_PROP } from "./constants.js";
+import { EventHandler } from "./EventHandler.js";
 
 export interface AmountDescription {
   amount: Amount;
