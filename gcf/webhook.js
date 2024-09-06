@@ -1,15 +1,28 @@
-const ngrok = require('ngrok');
-const Bkper = require('bkper').Bkper;
+import { connect } from 'ngrok';
+import { Bkper } from 'bkper-js';
+import { getOAuthToken } from 'bkper'
+import { App } from 'bkper-js';
+import dotenv from 'dotenv';
 
-//Ensure env at right location
-require('dotenv').config({path:`${__dirname}/../.env`});
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+
+dotenv.config({path:`${__dirname}/../.env`})
 
 process.env.NODE_ENV='development';
 
-const app = Bkper.setApiKey(process.env.BKPER_API_KEY);
+Bkper.setConfig({
+  oauthTokenProvider: () => getOAuthToken(),
+  apiKeyProvider: () => process.env.BKPER_API_KEY,
+})
+
+const app = new App();
 
 (async function() {
-  const url = await ngrok.connect({ port: 3002 });
+  const url = await connect({ port: 3002 });
   console.log(`Started ngrok at ${url}`);
   await app.setWebhookUrlDev(url).patch()
 })();
