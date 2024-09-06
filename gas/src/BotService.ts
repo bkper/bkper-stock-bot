@@ -1,5 +1,33 @@
 namespace BotService {
 
+    function isFlaggedAsHistorical(stockBook: Bkper.Book): boolean {
+        const stockHistoricalProp = stockBook.getProperty(STOCK_HISTORICAL_PROP);
+        return stockHistoricalProp && stockHistoricalProp.trim().toLowerCase() === 'true' ? true : false;
+    }
+
+    function isFlaggedAsFair(stockBook: Bkper.Book): boolean {
+        const stockFairProp = stockBook.getProperty(STOCK_FAIR_PROP);
+        return stockFairProp && stockFairProp.trim().toLowerCase() === 'true' ? true : false;
+    }
+
+    function isHistoricalOnly(stockBook: Bkper.Book): boolean {
+        return isFlaggedAsHistorical(stockBook) && !isFlaggedAsFair(stockBook);
+    }
+
+    function isFairOnly(stockBook: Bkper.Book): boolean {
+        return isFlaggedAsFair(stockBook) && !isFlaggedAsHistorical(stockBook);
+    }
+
+    export function getCalculationModel(stockBook: Bkper.Book): CalculationModel {
+        if (isHistoricalOnly(stockBook)) {
+            return CalculationModel.HISTORICAL_ONLY;
+        }
+        if (isFairOnly(stockBook)) {
+            return CalculationModel.FAIR_ONLY;
+        }
+        return CalculationModel.BOTH;
+    }
+
     export function auditBooks(bookId: string): void {
         let book = BkperApp.getBook(bookId);
         let connectedBooks = book.getCollection().getBooks();

@@ -9,7 +9,8 @@ namespace RealizedResultsService {
 
         let stockAccount = new StockAccount(stockBook.getAccount(stockAccountId));
 
-        let historical = stockBook.getProperty(STOCK_HISTORICAL_PROP) && stockBook.getProperty(STOCK_HISTORICAL_PROP).toLowerCase() == 'true' ? true : false;
+        // Calculation model
+        const model = BotService.getCalculationModel(stockBook);
 
         const summary = new Summary(stockAccount.getId());
 
@@ -57,7 +58,7 @@ namespace RealizedResultsService {
         // Process sales
         for (const saleTransaction of stockAccountSaleTransactions) {
             if (stockAccountPurchaseTransactions.length > 0) {
-                processSale(baseBook, financialBook, stockExcCode, stockBook, stockAccount, saleTransaction, stockAccountPurchaseTransactions, summary, autoMtM, historical, processor);
+                processSale(baseBook, financialBook, stockExcCode, stockBook, stockAccount, saleTransaction, stockAccountPurchaseTransactions, summary, autoMtM, model, processor);
             }
             // Abort if any transaction is locked
             if (processor.hasLockedTransaction()) {
@@ -174,7 +175,19 @@ namespace RealizedResultsService {
         return BotService.compareToFIFO(saleTransaction, purchaseTransaction) < 0;
     }
 
-    function processSale(baseBook: Bkper.Book, financialBook: Bkper.Book, stockExcCode: string, stockBook: Bkper.Book, stockAccount: StockAccount, saleTransaction: Bkper.Transaction, purchaseTransactions: Bkper.Transaction[], summary: Summary, autoMtM: boolean, historical: boolean, processor: CalculateRealizedResultsProcessor): void {
+    function processSale(
+        baseBook: Bkper.Book,
+        financialBook: Bkper.Book,
+        stockExcCode: string,
+        stockBook: Bkper.Book,
+        stockAccount: StockAccount,
+        saleTransaction: Bkper.Transaction,
+        purchaseTransactions: Bkper.Transaction[],
+        summary: Summary,
+        autoMtM: boolean,
+        model: CalculationModel,
+        processor: CalculateRealizedResultsProcessor
+    ): void {
 
         // Log operation status
         console.log(`processing sale: ${saleTransaction.getId()}`);
@@ -205,9 +218,9 @@ namespace RealizedResultsService {
         // Unrealized accounts
         const unrealizedAccount = getUnrealizedAccount(financialBook, stockAccount);
         const unrealizedFxBaseAccount = getUnrealizedFxBaseAccount(baseBook, stockAccount, excAggregateProp);
-        // Unrealized Hist accounts - NOT NEEDED IF BOOK IS HISTORICAL
-        const unrealizedHistAccount = historical ? null : getUnrealizedHistAccount(financialBook, stockAccount);
-        const unrealizedFxHistBaseAccount = historical ? null : getUnrealizedFxHistBaseAccount(baseBook, stockAccount, excAggregateProp);
+        // Unrealized Hist accounts - only needed if calculating BOTH historical and fair results
+        const unrealizedHistAccount = (model === CalculationModel.BOTH) ? getUnrealizedHistAccount(financialBook, stockAccount) : null;
+        const unrealizedFxHistBaseAccount = (model === CalculationModel.BOTH) ? getUnrealizedFxHistBaseAccount(baseBook, stockAccount, excAggregateProp) : null;
 
         let purchaseLogEntries: PurchaseLogEntry[] = [];
         let fwdPurchaseLogEntries: PurchaseLogEntry[] = [];
@@ -301,11 +314,14 @@ namespace RealizedResultsService {
                         .setProperty(SALE_DATE_PROP, saleTransaction.getProperty(DATE_PROP) || saleTransaction.getDate())
                         .setProperty(SHORT_SALE_PROP, 'true')
                     ;
-                    if (historical) {
-                        // Record Historical gain (using the same prop key as before)
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
+                        // Record historical gain only - use standard property key
                         purchaseTransaction.setProperty(GAIN_AMOUNT_PROP, histGain.toString());
+                    } else if (model === CalculationModel.FAIR_ONLY) {
+                        // Record fair gain only - use standard property key
+                        purchaseTransaction.setProperty(GAIN_AMOUNT_PROP, gain.toString());
                     } else {
-                        // Record both Historical & Fair gains
+                        // Record both gains - each one uses its own property key
                         purchaseTransaction
                             .setProperty(GAIN_AMOUNT_HIST_PROP, histGain.toString())
                             .setProperty(GAIN_AMOUNT_PROP, gain.toString())
@@ -321,21 +337,26 @@ namespace RealizedResultsService {
                 processor.setStockBookTransactionToUpdate(purchaseTransaction);
 
                 if (shortSale) {
-                    if (historical) {
-                        // Record Historical results (using the same accounts and remoteIds as before)
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
+                        // Record historical results only - use standard accounts and remoteId prefixes
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, purchaseTransaction, histGain, histGainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, purchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, false, processor);
-                        // MTM
+                        if (autoMtM) {
+                            addMarkToMarket(stockBook, purchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
+                        }
+                    } else if (model === CalculationModel.FAIR_ONLY) {
+                        // Record fair results only - use standard accounts and remoteId prefixes
+                        addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, purchaseTransaction, gain, gainBaseNoFx, false, processor);
+                        addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, purchaseTransaction, gainBaseWithFx, gainBaseNoFx, summary, false, processor);
                         if (autoMtM) {
                             addMarkToMarket(stockBook, purchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
                         }
                     } else {
-                        // Record both Historical & Fair results
+                        // Record both results - each one uses its accounts and remoteId prefixes
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedHistAccount, purchaseTransaction, histGain, histGainBaseNoFx, true, processor);
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, purchaseTransaction, gain, gainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxHistBaseAccount, purchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, true, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, purchaseTransaction, gainBaseWithFx, gainBaseNoFx, summary, false, processor);
-                        // MTM
                         if (autoMtM) {
                             addMarkToMarket(stockBook, purchaseTransaction, stockAccount, financialBook, unrealizedHistAccount, purchasePrice, true, processor);
                             addMarkToMarket(stockBook, purchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
@@ -400,11 +421,14 @@ namespace RealizedResultsService {
                         .setProperty(SALE_DATE_PROP, saleTransaction.getProperty(DATE_PROP) || saleTransaction.getDate())
                         .setProperty(SHORT_SALE_PROP, 'true')
                     ;
-                    if (historical) {
-                        // Record Historical gain (using the same prop key as before)
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
+                        // Record historical gain only - use standard property key
                         splittedPurchaseTransaction.setProperty(GAIN_AMOUNT_PROP, histGain.toString());
+                    } else if (model === CalculationModel.FAIR_ONLY) {
+                        // Record fair gain only - use standard property key
+                        splittedPurchaseTransaction.setProperty(GAIN_AMOUNT_PROP, gain.toString());
                     } else {
-                        // Record both Historical & Fair gains
+                        // Record both gains - each one uses its own property key
                         splittedPurchaseTransaction
                             .setProperty(GAIN_AMOUNT_HIST_PROP, histGain.toString())
                             .setProperty(GAIN_AMOUNT_PROP, gain.toString())
@@ -423,21 +447,26 @@ namespace RealizedResultsService {
                 processor.setStockBookTransactionToCreate(splittedPurchaseTransaction);
 
                 if (shortSale) {
-                    if (historical) {
-                        // Record Historical results (using the same accounts and remoteIds as before)
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
+                        // Record historical results only - use standard accounts and remoteId prefixes
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, splittedPurchaseTransaction, histGain, histGainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, splittedPurchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, false, processor);
-                        // MTM
+                        if (autoMtM) {
+                            addMarkToMarket(stockBook, splittedPurchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
+                        }
+                    } else if (model === CalculationModel.FAIR_ONLY) {
+                        // Record fair results only - use standard accounts and remoteId prefixes
+                        addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, splittedPurchaseTransaction, gain, gainBaseNoFx, false, processor);
+                        addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, splittedPurchaseTransaction, gainBaseWithFx, gainBaseNoFx, summary, false, processor);
                         if (autoMtM) {
                             addMarkToMarket(stockBook, splittedPurchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
                         }
                     } else {
-                        // Record both Historical & Fair results
+                        // Record both results - each one uses its accounts and remoteId prefixes
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedHistAccount, splittedPurchaseTransaction, histGain, histGainBaseNoFx, true, processor);
                         addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, splittedPurchaseTransaction, gain, gainBaseNoFx, false, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxHistBaseAccount, splittedPurchaseTransaction, histGainBaseWithFx, histGainBaseNoFx, summary, true, processor);
                         addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, splittedPurchaseTransaction, gainBaseWithFx, gainBaseNoFx, summary, false, processor);
-                        // MTM
                         if (autoMtM) {
                             addMarkToMarket(stockBook, splittedPurchaseTransaction, stockAccount, financialBook, unrealizedHistAccount, purchasePrice, true, processor);
                             addMarkToMarket(stockBook, splittedPurchaseTransaction, stockAccount, financialBook, unrealizedAccount, purchasePrice, false, processor);
@@ -497,11 +526,14 @@ namespace RealizedResultsService {
                     .setProperty(PURCHASE_LOG_PROP, JSON.stringify(purchaseLogEntries))
                     .setProperty(SALE_EXC_RATE_PROP, saleExcRate?.toString())
                 ;
-                if (historical) {
-                    // Record Historical gain (using the same prop key as before)
+                if (model === CalculationModel.HISTORICAL_ONLY) {
+                    // Record historical gain only - use standard property key
                     saleTransaction.setProperty(GAIN_AMOUNT_PROP, histGainTotal.toString());
+                } else if (model === CalculationModel.FAIR_ONLY) {
+                    // Record fair gain only - use standard property key
+                    saleTransaction.setProperty(GAIN_AMOUNT_PROP, gainTotal.toString());
                 } else {
-                    // Record both Historical & Fair gains
+                    // Record both gains - each one uses its own property key
                     saleTransaction
                         .setProperty(GAIN_AMOUNT_HIST_PROP, histGainTotal.toString())
                         .setProperty(GAIN_AMOUNT_PROP, gainTotal.toString())
@@ -559,11 +591,14 @@ namespace RealizedResultsService {
                         .setProperty(SALE_AMOUNT_PROP, saleTotal.toString())
                         .setProperty(PURCHASE_LOG_PROP, JSON.stringify(purchaseLogEntries))
                     ;
-                    if (historical) {
-                        // Record Historical gain (using the same prop key as before)
+                    if (model === CalculationModel.HISTORICAL_ONLY) {
+                        // Record historical gain only - use standard property key
                         splittedSaleTransaction.setProperty(GAIN_AMOUNT_PROP, histGainTotal.toString());
+                    } else if (model === CalculationModel.FAIR_ONLY) {
+                        // Record fair gain only - use standard property key
+                        splittedSaleTransaction.setProperty(GAIN_AMOUNT_PROP, gainTotal.toString());
                     } else {
-                        // Record both Historical & Fair gains
+                        // Record both gains - each one uses its own property key
                         splittedSaleTransaction
                             .setProperty(GAIN_AMOUNT_HIST_PROP, histGainTotal.toString())
                             .setProperty(GAIN_AMOUNT_PROP, gainTotal.toString())
@@ -591,21 +626,26 @@ namespace RealizedResultsService {
 
         }
 
-        if (historical) {
-            // Record Historical results (using the same accounts and remoteIds as before)
+        if (model === CalculationModel.HISTORICAL_ONLY) {
+            // Record historical results only - use standard accounts and remoteId prefixes
             addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, saleTransaction, histGainTotal, histGainBaseNoFxTotal, false, processor);
             addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, saleTransaction, histGainBaseWithFxTotal, histGainBaseNoFxTotal, summary, false, processor);
-            // MTM
+            if (autoMtM && purchaseProcessed && !saleTransaction.getProperty(LIQUIDATION_LOG_PROP)) {
+                addMarkToMarket(stockBook, saleTransaction, stockAccount, financialBook, unrealizedAccount, salePrice, false, processor);
+            }
+        } else if (model === CalculationModel.FAIR_ONLY) {
+            // Record fair results only - use standard accounts and remoteId prefixes
+            addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, saleTransaction, gainTotal, gainBaseNoFxTotal, false, processor);
+            addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, saleTransaction, gainBaseWithFxTotal, gainBaseNoFxTotal, summary, false, processor);
             if (autoMtM && purchaseProcessed && !saleTransaction.getProperty(LIQUIDATION_LOG_PROP)) {
                 addMarkToMarket(stockBook, saleTransaction, stockAccount, financialBook, unrealizedAccount, salePrice, false, processor);
             }
         } else {
-            // Record both Historical & Fair results
+            // Record both results - each one uses its accounts and remoteId prefixes
             addRealizedResult(baseBook, stockAccount, financialBook, unrealizedHistAccount, saleTransaction, histGainTotal, histGainBaseNoFxTotal, true, processor);
             addRealizedResult(baseBook, stockAccount, financialBook, unrealizedAccount, saleTransaction, gainTotal, gainBaseNoFxTotal, false, processor);
             addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxHistBaseAccount, saleTransaction, histGainBaseWithFxTotal, histGainBaseNoFxTotal, summary, true, processor);
             addFxResult(stockAccount, stockExcCode, baseBook, unrealizedFxBaseAccount, saleTransaction, gainBaseWithFxTotal, gainBaseNoFxTotal, summary, false, processor);
-            // MTM
             if (autoMtM && purchaseProcessed && !saleTransaction.getProperty(LIQUIDATION_LOG_PROP)) {
                 addMarkToMarket(stockBook, saleTransaction, stockAccount, financialBook, unrealizedHistAccount, salePrice, true, processor);
                 addMarkToMarket(stockBook, saleTransaction, stockAccount, financialBook, unrealizedAccount, salePrice, false, processor);

@@ -31,6 +31,7 @@ export const EXC_CODE_PROP = 'exc_code';
 export const ORDER_PROP = 'order';
 export const LEGACY_REALIZED_DATE_PROP = 'stock_realized_date';
 export const REALIZED_DATE_PROP = 'realized_date';
+export const STOCK_FAIR_PROP = 'stock_fair';
 export const STOCK_HISTORICAL_PROP = 'stock_historical';
 export const EXC_HISTORICAL_PROP = 'exc_historical';
 

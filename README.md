@@ -26,8 +26,12 @@ The Stock Bot interacts with the following properties:
 #### Financial Books
 - ```exc_code```: Required - The book exchange code to match the ```stock_exc_code```.
 #### Instruments Book
-- ```stock_historical```: Optional - true/false - Defines if realized results calculations should consider **only** historical costs and rates. If set to false or not present, calculations will consider **both** historical and fair values. For more information, check out this article on [Mark-To-Market vs. Historical Cost accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
 - ```stock_book```: Optional - true/false - Identifies the Instruments book of the collection. If not present, decimal places must be set to 0 (zero) in the book settings.
+- ```stock_historical```: Optional - true/false - Defines if realized results calculations should consider **only** historical costs and rates.
+- ```stock_fair```: Optional - true/false - Defines if realized results calculations should consider **only** fair costs and rates.
+
+**Observations:**
+If neither ```stock_historical``` or ```stock_fair``` properties are set, calculations will consider **both** historical and fair basis. For more information on this, check out this article on [Mark-To-Market vs. Historical Cost accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
 
 ### Group Properties
 
