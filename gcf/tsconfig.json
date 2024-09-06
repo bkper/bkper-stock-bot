@@ -3,9 +3,6 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
     "declaration": false,
     "sourceMap": true,
     "strictNullChecks": false,
