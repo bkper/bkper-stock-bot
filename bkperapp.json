@@ -37,7 +37,8 @@
     "book": {
       "keys": [
         "stock_book",
-        "stock_historical"
+        "stock_historical",
+        "stock_fair"
       ]
     },
     "transaction": {
