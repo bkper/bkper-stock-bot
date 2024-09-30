@@ -40,7 +40,7 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
 
     const priceHistProp = financialTransaction.properties[constants.PRICE_HIST_PROP];
     if (priceHistProp) {
-      priceHist = new Amount(priceHistProp);
+      priceHist = new Amount(priceHistProp).abs();
     }
 
     let stockAccount = await this.getConnectedStockAccount(financialBook, stockBook, financialCreditAccount);
