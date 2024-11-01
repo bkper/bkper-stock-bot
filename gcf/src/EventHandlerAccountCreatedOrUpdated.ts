@@ -1,11 +1,11 @@
-import { Account, AccountType, Book } from "bkper-js";
+import { Account, AccountType, Book, Group } from "bkper-js";
 import { STOCK_EXC_CODE_PROP } from "./constants.js";
 import { EventHandlerAccount } from "./EventHandlerAccount.js";
 
 export class EventHandlerAccountCreatedOrUpdated extends EventHandlerAccount {
 
   public async connectedAccountNotFound(baseBook: Book, connectedBook: Book, baseAccount: bkper.Account): Promise<string> {
-    let connectedAccount = connectedBook.newAccount();
+    let connectedAccount = new Account(connectedBook);
     await this.syncAccounts(baseBook, connectedBook, baseAccount, connectedAccount);
     await connectedAccount.create();
     let bookAnchor = super.buildBookAnchor(connectedBook);
@@ -31,7 +31,7 @@ export class EventHandlerAccountCreatedOrUpdated extends EventHandlerAccount {
           let connectedGroup = await stockBook.getGroup(baseGroup.getName());
           let stockExcCode = baseGroup.getProperty(STOCK_EXC_CODE_PROP);
           if (connectedGroup == null && stockExcCode != null && stockExcCode.trim() != '') {
-            connectedGroup = await stockBook.newGroup()
+            connectedGroup = await new Group(stockBook)
               .setHidden(baseGroup.isHidden())
               .setName(baseGroup.getName())
               .setProperties(baseGroup.getProperties())

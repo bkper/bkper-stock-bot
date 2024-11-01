@@ -1,4 +1,4 @@
-import { Account, AccountType, Amount, Book } from "bkper-js";
+import { Account, AccountType, Amount, Book, Transaction } from "bkper-js";
 import { Result } from "./index.js";
 import { isStockBook, getStockBook, getCalculationModel } from "./BotService.js";
 import { CalculationModel } from './CalculationModel.js';
@@ -122,7 +122,7 @@ export class InterceptorOrderProcessor {
         let instrument = this.getInstrument(transactionPayload);
         let instrumentAccount = await baseBook.getAccount(instrument);
         if (instrumentAccount == null) {
-            instrumentAccount = await baseBook.newAccount().setName(instrument).setType(AccountType.ASSET).create();
+            instrumentAccount = await new Account(baseBook).setName(instrument).setType(AccountType.ASSET).create();
         }
         return instrumentAccount;
     }
@@ -178,7 +178,7 @@ export class InterceptorOrderProcessor {
     protected async getFeesAccount(baseBook: Book, feesAccountName: string): Promise<Account> {
         let feesAccount = await baseBook.getAccount(feesAccountName);
         if (feesAccount == null) {
-            feesAccount = await baseBook.newAccount().setName(feesAccountName).setType(AccountType.OUTGOING).create();
+            feesAccount = await new Account(baseBook).setName(feesAccountName).setType(AccountType.OUTGOING).create();
         }
         return feesAccount;
     }
@@ -187,7 +187,7 @@ export class InterceptorOrderProcessor {
         let interestAccountName = `${instrument} Interest`;
         let interestAccount = await baseBook.getAccount(interestAccountName);
         if (interestAccount == null) {
-            interestAccount = await baseBook.newAccount().setName(interestAccountName).setType(AccountType.ASSET).create();
+            interestAccount = await new Account(baseBook).setName(interestAccountName).setType(AccountType.ASSET).create();
         }
         return interestAccount;
     }
@@ -199,7 +199,7 @@ export class InterceptorOrderProcessor {
             let tradeDate = this.getTradeDate(transactionPayload);
             let feesAccountName = this.getFeesAccountName(exchangeAccount);
             let feesAccount = await this.getFeesAccount(baseBook, feesAccountName);
-            let tx = await baseBook.newTransaction()
+            let tx = await new Transaction(baseBook)
                 .setAmount(fees)
                 .from(exchangeAccount)
                 .to(feesAccount)
@@ -220,7 +220,7 @@ export class InterceptorOrderProcessor {
         if (!interest.eq(0)) {
             let tradeDate = this.getTradeDate(transactionPayload);
             let interestAccount = await this.getInterestAccount(instrument, baseBook);
-            let tx = await baseBook.newTransaction()
+            let tx = await new Transaction(baseBook)
                 .setAmount(interest)
                 .from(exchangeAccount)
                 .to(interestAccount)
@@ -239,7 +239,7 @@ export class InterceptorOrderProcessor {
         if (!interest.eq(0)) {
             let interestAccount = await this.getInterestAccount(instrument, baseBook);
             let tradeDate = this.getTradeDate(transactionPayload);
-            let tx = await baseBook.newTransaction()
+            let tx = await new Transaction(baseBook)
                 .setAmount(interest)
                 .from(interestAccount)
                 .to(exchangeAccount)
@@ -261,7 +261,7 @@ export class InterceptorOrderProcessor {
         let tradeDate = this.getTradeDate(transactionPayload);
         const amount = new Amount(transactionPayload.amount).minus(interest).minus(fees);
         const price = amount.div(quantity);
-        let tx = baseBook.newTransaction()
+        let tx = new Transaction(baseBook)
             .setAmount(amount)
             .from(exchangeAccount)
             .to(instrumentAccount)
@@ -303,7 +303,7 @@ export class InterceptorOrderProcessor {
         let tradeDate = this.getTradeDate(transactionPayload);
         const amount = new Amount(transactionPayload.amount).minus(interest).plus(fees);
         const price = amount.div(quantity);
-        let tx = baseBook.newTransaction()
+        let tx = new Transaction(baseBook)
             .setAmount(amount)
             .from(instrumentAccount)
             .to(exchangeAccount)

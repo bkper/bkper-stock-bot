@@ -22,9 +22,8 @@ export abstract class InterceptorOrderProcessorDelete {
   }
 
   protected async cascadeDeleteTransactions(book: Book, remoteTx: bkper.Transaction, prefix: string) {
-    let iterator = book.getTransactions(`remoteId:${prefix}${remoteTx.id}`);
-    if (await iterator.hasNext()) {
-      let tx = await iterator.next();
+    let tx = (await book.listTransactions(`remoteId:${prefix}${remoteTx.id}`)).getFirst();
+    if (tx) {
       if (tx.isChecked()) {
         tx = await tx.uncheck();
       }
@@ -37,9 +36,8 @@ export abstract class InterceptorOrderProcessorDelete {
   }
 
   protected async deleteTransaction(book: Book, remoteId: string): Promise<Transaction> {
-    let iterator = book.getTransactions(`remoteId:${remoteId}`);
-    if (await iterator.hasNext()) {
-      let tx = await iterator.next();
+    let tx = (await book.listTransactions(`remoteId:${remoteId}`)).getFirst();
+    if (tx) {
       if (tx.isChecked()) {
         tx = await tx.uncheck();
       }

@@ -3,11 +3,11 @@ import { EventHandlerGroup } from "./EventHandlerGroup.js";
 
 export class EventHandlerGroupCreatedOrUpdated extends EventHandlerGroup {
   protected async connectedGroupNotFound(financialBook: Book, stockBook: Book, financialGroup: bkper.Group): Promise<string> {
-    let connectedGroup = await stockBook.newGroup()
-    .setName(financialGroup.name)
-    .setHidden(financialGroup.hidden)
-    .setProperties(financialGroup.properties)
-    .create();
+    let connectedGroup = await new Group(stockBook)
+      .setName(financialGroup.name)
+      .setHidden(financialGroup.hidden)
+      .setProperties(financialGroup.properties)
+      .create();
     let bookAnchor = super.buildBookAnchor(stockBook);
     return `${bookAnchor}: GROUP ${connectedGroup.getName()} CREATED`;
   }

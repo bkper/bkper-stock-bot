@@ -1,4 +1,4 @@
-import { Account, AccountType, Amount, Book, Transaction } from "bkper-js";
+import { Account, AccountType, Amount, Book, Group, Transaction } from "bkper-js";
 import { Result } from "./index.js";
 import { getRealizedDateValue, getStockExchangeCode } from "./BotService.js";
 import * as constants from "./constants.js";
@@ -49,10 +49,10 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
       // Selling
       let stockSellAccount = await stockBook.getAccount(constants.STOCK_SELL_ACCOUNT_NAME);
       if (stockSellAccount == null) {
-        stockSellAccount = await stockBook.newAccount().setName(constants.STOCK_SELL_ACCOUNT_NAME).setType(AccountType.OUTGOING).create();
+        stockSellAccount = await new Account(stockBook).setName(constants.STOCK_SELL_ACCOUNT_NAME).setType(AccountType.OUTGOING).create();
       }
 
-      let newTransaction = await stockBook.newTransaction()
+      let newTransaction = await new Transaction(stockBook)
         .setDate(financialTransaction.date)
         .setAmount(quantity)
         .setCreditAccount(stockAccount)
@@ -80,10 +80,10 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
         // Buying
         let stockBuyAccount = await stockBook.getAccount(constants.STOCK_BUY_ACCOUNT_NAME);
         if (stockBuyAccount == null) {
-          stockBuyAccount = await stockBook.newAccount().setName(constants.STOCK_BUY_ACCOUNT_NAME).setType(AccountType.INCOMING).create();
+          stockBuyAccount = await new Account(stockBook).setName(constants.STOCK_BUY_ACCOUNT_NAME).setType(AccountType.INCOMING).create();
         }
 
-        let newTransaction = await stockBook.newTransaction()
+        let newTransaction = await new Transaction(stockBook)
           .setDate(financialTransaction.date)
           .setAmount(quantity)
           .setCreditAccount(stockBuyAccount)
@@ -121,7 +121,7 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
     if (stockExchangeCode != null) {
       let stockAccount = await stockBook.getAccount(financialAccount.name);
       if (stockAccount == null) {
-        stockAccount = stockBook.newAccount()
+        stockAccount = new Account(stockBook)
           .setName(financialAccount.name)
           .setType(financialAccount.type as AccountType)
           .setProperties(financialAccount.properties)
@@ -132,7 +132,7 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
               let stockGroup = await stockBook.getGroup(financialGroup.name);
               let stockExcCode = financialGroup.properties[constants.STOCK_EXC_CODE_PROP];
               if (stockGroup == null && stockExcCode != null && stockExcCode.trim() != '') {
-                stockGroup = await stockBook.newGroup()
+                stockGroup = await new Group(stockBook)
                   .setHidden(financialGroup.hidden)
                   .setName(financialGroup.name)
                   .setProperties(financialGroup.properties)
