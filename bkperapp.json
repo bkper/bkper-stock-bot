@@ -16,7 +16,7 @@
   "menuText": "Stock Bot",
   "menuPopupWidth": 600,
   "menuPopupHeight": 600,
-  "webhookUrl": "https://us-central1-bkper-stock-bot.cloudfunctions.net/prod",
+  "webhookUrl": "https://us-central1-bkper-stock-bot.cloudfunctions.net/prodGen2",
   "apiVersion": "v5",
   "events": [
     "TRANSACTION_POSTED",
