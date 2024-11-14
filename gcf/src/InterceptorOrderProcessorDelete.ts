@@ -27,7 +27,7 @@ export abstract class InterceptorOrderProcessorDelete {
       if (tx.isChecked()) {
         tx = await tx.uncheck();
       }
-      await tx.remove();
+      await tx.trash();
     }
   }
 
@@ -41,7 +41,7 @@ export abstract class InterceptorOrderProcessorDelete {
       if (tx.isChecked()) {
         tx = await tx.uncheck();
       }
-      tx = await tx.remove();
+      tx = await tx.trash();
       return tx;
     }
     return null;

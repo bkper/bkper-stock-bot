@@ -34,7 +34,7 @@ export class EventHandlerTransactionDeleted extends EventHandlerTransaction {
 
     await flagStockAccountForRebuildIfNeeded(stockTransaction);
 
-    await stockTransaction.remove();
+    await stockTransaction.trash();
 
     let amountFormatted = stockBook.formatValue(stockTransaction.getAmount())
 
