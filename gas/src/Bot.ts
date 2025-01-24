@@ -60,6 +60,8 @@ const SELL_ACCOUNT_NAME = 'Sell'
 const BUY_ACCOUNT_NAME = 'Buy'
 const ORIGINAL_PURCHASE_PRICE = 'orig_purchase_price'
 const ORIGINAL_SALE_PRICE = 'orig_sale_price'
+const TRADE_EXC_RATE_PROP = 'trade_exc_rate';
+const TRADE_EXC_RATE_HIST_PROP = 'trade_exc_rate_hist';
 
 // Account suffixes
 const UNREALIZED_SUFFIX = 'Unrealized';

@@ -131,8 +131,13 @@ namespace BotService {
     }
 
     export function getFwdExcRate(stockTransaction: Bkper.Transaction, fwdExcRateProp: string, fallbackExcRate: Bkper.Amount): Bkper.Amount {
-        if (stockTransaction.getProperty(fwdExcRateProp)) {
-            return BkperApp.newAmount(stockTransaction.getProperty(fwdExcRateProp))
+        // If specific trade exc rate was provided, use it
+        if (hasProvidedTradeExcRates(stockTransaction)) {
+            return getFwdTradeExcRate(stockTransaction, fwdExcRateProp);
+        }
+        const fwdExcRate = stockTransaction.getProperty(fwdExcRateProp);
+        if (fwdExcRate) {
+            return BkperApp.newAmount(fwdExcRate);
         }
         return fallbackExcRate;
     }
@@ -147,6 +152,11 @@ namespace BotService {
         // Base currency
         if (baseBook.getProperty(EXC_CODE_PROP) == financialBook.getProperty(EXC_CODE_PROP)) {
             return undefined;
+        }
+
+        // If specific trade exc rate was provided, use it
+        if (hasProvidedTradeExcRates(stockTransaction)) {
+            return getTradeExcRate(stockTransaction);
         }
 
         // Exc rate already set
@@ -175,6 +185,42 @@ namespace BotService {
             }
         }
 
+        return undefined;
+    }
+
+    function hasProvidedTradeExcRates(stockTransaction: Bkper.Transaction): boolean {
+        const tradeExcRateProp = stockTransaction.getProperty(TRADE_EXC_RATE_PROP);
+        const tradeExcRateHistProp = stockTransaction.getProperty(TRADE_EXC_RATE_HIST_PROP);
+        return (tradeExcRateProp || tradeExcRateHistProp) ? true : false;
+    }
+
+    function findTradeExcRate(stockTransaction: Bkper.Transaction, tradeExcRateProp: string): Bkper.Amount | undefined {
+        const tradeExcRate = stockTransaction.getProperty(tradeExcRateProp);
+        if (tradeExcRate) {
+            return BkperApp.newAmount(tradeExcRate);
+        }
+        return undefined;
+    }
+
+    export function getFwdTradeExcRate(stockTransaction: Bkper.Transaction, fwdExcRateProp: string): Bkper.Amount | undefined {
+        // Try last fwd exc rate set
+        const fwdExcRate = stockTransaction.getProperty(fwdExcRateProp);
+        if (fwdExcRate) {
+            return BkperApp.newAmount(fwdExcRate);
+        }
+        // Fallback to original provided trade exc rate
+        const tradeExcRate = findTradeExcRate(stockTransaction, TRADE_EXC_RATE_PROP);
+        if (tradeExcRate) {
+            return tradeExcRate;
+        }
+        return undefined;
+    }
+
+    export function getTradeExcRate(stockTransaction: Bkper.Transaction): Bkper.Amount | undefined {
+        const tradeExcRateHist = stockTransaction.getProperty(TRADE_EXC_RATE_HIST_PROP);
+        if (tradeExcRateHist) {
+            return BkperApp.newAmount(tradeExcRateHist);
+        }
         return undefined;
     }
 
