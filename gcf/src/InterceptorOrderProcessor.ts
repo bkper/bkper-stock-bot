@@ -2,7 +2,7 @@ import { Account, AccountType, Amount, Book, Transaction } from "bkper-js";
 import { Result } from "./index.js";
 import { isStockBook, getStockBook, getCalculationModel } from "./BotService.js";
 import { CalculationModel } from './CalculationModel.js';
-import { COST_HIST_PROP, FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, ORDER_PROP, PRICE_HIST_PROP, PRICE_PROP, QUANTITY_PROP, SETTLEMENT_DATE, STOCK_FEES_ACCOUNT_PROP, TRADE_DATE_PROP } from "./constants.js";
+import { COST_HIST_BASE_PROP, COST_BASE_PROP, COST_HIST_PROP, TRADE_EXC_RATE_HIST_PROP, TRADE_EXC_RATE_PROP, FEES_PROP, INSTRUMENT_PROP, INTEREST_PROP, ORDER_PROP, PRICE_HIST_PROP, PRICE_PROP, QUANTITY_PROP, SETTLEMENT_DATE, STOCK_FEES_ACCOUNT_PROP, TRADE_DATE_PROP } from "./constants.js";
 
 export class InterceptorOrderProcessor {
 
@@ -47,12 +47,11 @@ export class InterceptorOrderProcessor {
         const stockBook = getStockBook(baseBook);
         const model = getCalculationModel(stockBook);
         let exchangeAccount = this.getExchangeAccountOnSale(baseBook, transactionPayload);
-        let responses: string[] = await Promise.all(
-            [
-                this.postFees(baseBook, exchangeAccount, transactionPayload),
-                this.postInterestOnSale(baseBook, exchangeAccount, transactionPayload),
-                this.postInstrumentTradeOnSale(baseBook, exchangeAccount, transactionPayload, model)
-            ]);
+        let responses: string[] = await Promise.all([
+            this.postFees(baseBook, exchangeAccount, transactionPayload),
+            this.postInterestOnSale(baseBook, exchangeAccount, transactionPayload),
+            this.postInstrumentTradeOnSale(baseBook, exchangeAccount, transactionPayload, model)
+        ]);
         responses = responses.filter(r => r != null).filter(r => typeof r === "string")
         return { result: responses };
     }
@@ -61,12 +60,11 @@ export class InterceptorOrderProcessor {
         const stockBook = getStockBook(baseBook);
         const model = getCalculationModel(stockBook);
         let exchangeAccount = this.getExchangeAccountOnPurchase(baseBook, transactionPayload);
-        let responses: string[] = await Promise.all(
-            [
-                this.postFees(baseBook, exchangeAccount, transactionPayload),
-                this.postInterestOnPurchase(baseBook, exchangeAccount, transactionPayload),
-                this.postInstrumentTradeOnPurchase(baseBook, exchangeAccount, transactionPayload, model)
-            ]);
+        let responses: string[] = await Promise.all([
+            this.postFees(baseBook, exchangeAccount, transactionPayload),
+            this.postInterestOnPurchase(baseBook, exchangeAccount, transactionPayload),
+            this.postInstrumentTradeOnPurchase(baseBook, exchangeAccount, transactionPayload, model)
+        ]);
         responses = responses.filter(r => r != null).filter(r => typeof r === "string")
         return { result: responses };
     }
@@ -274,10 +272,22 @@ export class InterceptorOrderProcessor {
             .setProperty(FEES_PROP, fees.toString())
             .setProperty(INTEREST_PROP, interest.toString())
             .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`);
+        // If a base cost is provided, try calculating trade exc rate
+        const tradeExcRate = this.getTradeExcRate(transactionPayload, amount);
+        if (tradeExcRate) {
+            tx.setProperty(TRADE_EXC_RATE_PROP, tradeExcRate.toString());
+        }
+        // Double-model
         if (model === CalculationModel.BOTH) {
+            // If a historical cost is provided, try calculating historical price
             const priceHist = this.getPurchasePriceHist(transactionPayload, interest, fees, quantity);
             if (priceHist && !priceHist.eq(0)) {
                 tx.setProperty(PRICE_HIST_PROP, priceHist.toString());
+            }
+            // If a historical base cost is provided, try calculating historical trade exc rate
+            const tradeExcRateHist = this.getTradeExcRateHist(transactionPayload);
+            if (tradeExcRateHist) {
+                tx.setProperty(TRADE_EXC_RATE_HIST_PROP, tradeExcRateHist.toString());
             }
         }
         tx = await tx.post();
@@ -290,6 +300,32 @@ export class InterceptorOrderProcessor {
             const costHist = new Amount(costHistProp).abs();
             const purchaseAmountHist = costHist.minus(interest).minus(fees);
             return purchaseAmountHist.div(quantity);
+        }
+        return null;
+    }
+
+    private getTradeExcRate(transactionPayload: bkper.Transaction, cost: Amount): Amount | null {
+        const costBaseProp = transactionPayload.properties[COST_BASE_PROP];
+        if (costBaseProp) {
+            const costBase = new Amount(costBaseProp).abs();
+            if (costBase && cost && !cost.eq(0)) {
+                return costBase.div(cost);
+            }
+        }
+        return null;
+    }
+
+    private getTradeExcRateHist(transactionPayload: bkper.Transaction): Amount | null {
+        const costHistProp = transactionPayload.properties[COST_HIST_PROP];
+        if (costHistProp) {
+            const costHist = new Amount(costHistProp).abs();
+            const costHistBaseProp = transactionPayload.properties[COST_HIST_BASE_PROP];
+            if (costHistBaseProp) {
+                const costHistBase = new Amount(costHistBaseProp).abs();
+                if (costHistBase && costHist && !costHist.eq(0)) {
+                    return costHistBase.div(costHist);
+                }
+            }
         }
         return null;
     }
@@ -316,10 +352,22 @@ export class InterceptorOrderProcessor {
             .setProperty(FEES_PROP, fees.toString())
             .setProperty(INTEREST_PROP, interest.toString())
             .addRemoteId(`${INSTRUMENT_PROP}_${transactionPayload.id}`);
+        // If a base cost is provided, try calculating trade exc rate
+        const tradeExcRate = this.getTradeExcRate(transactionPayload, amount);
+        if (tradeExcRate) {
+            tx.setProperty(TRADE_EXC_RATE_PROP, tradeExcRate.toString());
+        }
+        // Double-model
         if (model === CalculationModel.BOTH) {
+            // If a historical cost is provided, try calculating historical price
             const priceHist = this.getSalePriceHist(transactionPayload, interest, fees, quantity);
             if (priceHist && !priceHist.eq(0)) {
                 tx.setProperty(PRICE_HIST_PROP, priceHist.toString());
+            }
+            // If a historical base cost is provided, try calculating trade historical exc rate
+            const tradeExcRateHist = this.getTradeExcRateHist(transactionPayload);
+            if (tradeExcRateHist) {
+                tx.setProperty(TRADE_EXC_RATE_HIST_PROP, tradeExcRateHist.toString());
             }
         }
         tx = await tx.post();

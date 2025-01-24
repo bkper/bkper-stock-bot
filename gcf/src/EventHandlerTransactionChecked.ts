@@ -37,10 +37,20 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
     const price = originalAmount.div(quantity);
 
     let priceHist: Amount | null = null;
+    let tradeExcRate: Amount | null = null;
+    let tradeExcRateHist: Amount | null = null;
 
     const priceHistProp = financialTransaction.properties[constants.PRICE_HIST_PROP];
     if (priceHistProp) {
       priceHist = new Amount(priceHistProp).abs();
+    }
+    const tradeExcRateProp = financialTransaction.properties[constants.TRADE_EXC_RATE_PROP];
+    if (tradeExcRateProp) {
+      tradeExcRate = new Amount(tradeExcRateProp);
+    }
+    const tradeExcRateHistProp = financialTransaction.properties[constants.TRADE_EXC_RATE_HIST_PROP];
+    if (tradeExcRateHistProp) {
+      tradeExcRateHist = new Amount(tradeExcRateHistProp);
     }
 
     let stockAccount = await this.getConnectedStockAccount(financialBook, stockBook, financialCreditAccount);
@@ -61,6 +71,8 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
         .addRemoteId(financialTransaction.id)
         .setProperty(constants.SALE_PRICE_PROP, price.toString())
         .setProperty(constants.SALE_PRICE_HIST_PROP, priceHist?.toString())
+        .setProperty(constants.TRADE_EXC_RATE_PROP, tradeExcRate?.toString())
+        .setProperty(constants.TRADE_EXC_RATE_HIST_PROP, tradeExcRateHist?.toString())
         .setProperty(constants.ORDER_PROP, financialTransaction.properties[constants.ORDER_PROP])
         .setProperty(constants.ORIGINAL_QUANTITY_PROP, quantity.toString())
         .setProperty(constants.ORIGINAL_AMOUNT_PROP, originalAmount.toString())
@@ -92,6 +104,8 @@ export class EventHandlerTransactionChecked extends EventHandlerTransaction {
           .addRemoteId(financialTransaction.id)
           .setProperty(constants.PURCHASE_PRICE_PROP, price.toString())
           .setProperty(constants.PURCHASE_PRICE_HIST_PROP, priceHist?.toString())
+          .setProperty(constants.TRADE_EXC_RATE_PROP, tradeExcRate?.toString())
+          .setProperty(constants.TRADE_EXC_RATE_HIST_PROP, tradeExcRateHist?.toString())
           .setProperty(constants.ORDER_PROP, financialTransaction.properties[constants.ORDER_PROP])
           .setProperty(constants.ORIGINAL_QUANTITY_PROP, quantity.toString())
           .setProperty(constants.ORIGINAL_AMOUNT_PROP, originalAmount.toString())
