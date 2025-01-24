@@ -1,89 +1,87 @@
-Manage Stock Book in sync with Financial Books upon buying and seling inventory instruments.
+# Bkper Stock Bot
+
+A Bkper Bot that automatically manages inventory instruments across Financial Books by maintaining synchronized quantities and calculating realized results in a dedicated Stock Book.
 
 ![Stock Bot](https://docs.google.com/drawings/d/e/2PACX-1vQSjFxT6jVtwaiuDOEaDOaruFHWDp8YtT91lNUCw4BruKm3ZED__g1D4-5iAoi-J23j4v55Tk6ETg9R/pub?w=2848&h=1306)
 
-It works by monitoring Financial Books and tracking quantities of instruments bought or sold in a separate Stock Book.
 
-The process of tracking realized gains and losses upon sales follows the FIFO ([First-In, First-Out](https://medium.com/magnimetrics/first-in-first-out-fifo-inventory-costing-f0bc00096a59)) method.
+## Overview
+
+The Stock Bot monitors transactions in Financial Books and automatically tracks quantities of traded instruments in a separate Stock Book. Key features include:
+
+- Automatic synchronization between Financial Books and the Stock Book.
+- [Realized Results](#realized-results-service) tracking using the FIFO method.
+- Support for both [Historical Cost and Mark-To-Market accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
+- Handling of fees, interests, and multiple exchange rates.
+- Period closing support with [Forward Date](#forward-date-service) functionality.
 
 
 ## Configuration
 
-Financial and Instruments Books **must be in the same [Collection](https://help.bkper.com/en/articles/4208937-collections)**.
+To configure the Bkper Stock Bot, ensure the following setup:
 
-A single Instruments Book must be defined per Collection.
+### Collection:
+   - Both Financial and Instruments Books must reside within the same [Collection](https://help.bkper.com/en/articles/4208937-collections).
+   - Define a single Instruments Book per Collection. This book is identified by either:
+     - Setting the **decimal places to 0 (zero)** in the book settings, or
+     - Setting the `stock_book` property to `true`.
 
-The Instruments Book is identified by a single book in the Collection with the **decimal places set to 0 (zero)** or by the ```stock_book``` property set to ```true```.
+### Base Book (optional):
+   - Optionally, you can define a single Base Book per Collection for tracking realized exchange results separately. Refer to the [Realized Results Service](#realized-results-service) for more details.
+   - The Base Book is identified by setting the `exc_base` property to `true`.
 
-A single Base Book can be defined per Collection. See [Realized Results Service](#realized-results-service).
+### Properties Interactions:
 
-The Base Book is identified by the ```exc_base``` property set to ```true```.
+   The Stock Bot interacts with various properties to manage and synchronize data effectively. Ensure these properties are correctly set in your books for optimal performance.
 
-The Stock Bot interacts with the following properties:
+   **Book Properties**:
+   - **Financial Books**:
+     - `exc_code`: **Required** - The exchange code representing the book currency.
+   - **Instruments Book**:
+     - `stock_book`: **Optional** - true/false - Identifies the Instruments book of the collection. If not present, decimal places must be set to 0 (zero) in the book settings.
+     - `stock_historical`: **Optional** - true/false - Defines if realized results calculations should consider **only** historical costs and rates.
+     - `stock_fair`: **Optional** - true/false - Defines if realized results calculations should consider **only** fair costs and rates.
 
-### Book Properties
+     **Observations:**
+     If neither `stock_historical` nor `stock_fair` properties are set, calculations will consider **both** historical and fair basis. For more information, check out this article on [Mark-To-Market vs. Historical Cost accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
 
-#### Financial Books
-- ```exc_code```: Required - The book exchange code to match the ```stock_exc_code```.
-#### Instruments Book
-- ```stock_book```: Optional - true/false - Identifies the Instruments book of the collection. If not present, decimal places must be set to 0 (zero) in the book settings.
-- ```stock_historical```: Optional - true/false - Defines if realized results calculations should consider **only** historical costs and rates.
-- ```stock_fair```: Optional - true/false - Defines if realized results calculations should consider **only** fair costs and rates.
+   **Group Properties**:
+   - `stock_exc_code`: **Required** - Defines the exchange code representing the currency of the instrument that will have quantities mirrored into the Stock Book. Only transactions from/to accounts within groups with the `stock_exc_code` property set will be mirrored.
 
-**Observations:**
-If neither ```stock_historical``` or ```stock_fair``` properties are set, calculations will consider **both** historical and fair basis. For more information on this, check out this article on [Mark-To-Market vs. Historical Cost accounting](https://www.investopedia.com/ask/answers/042315/how-market-market-accounting-different-historical-cost-accounting.asp).
+   **Account Properties**:
+   - `stock_fees_account`: **Optional** - The fees account used by the broker account. The broker account is identified by having an associated fees account.
 
-### Group Properties
-
-- ```stock_exc_code```: Required - Defines the exchange code of the instrument that will have quantities mirrored into the Stock Book. Only transactions with accounts within groups with ```stock_exc_code``` set will be mirrored.
-
-### Account Properties
-
-- ```stock_fees_account```: Optional - The fees account used by the broker account. The broker account is identified by having an associated fees account.
-
-### Transaction Properties 
-
-- ```instrument```: Required - The instrument name.
-- ```quantity```: Required - The quantity of the instrument stock operation to track.
-- ```trade_date```: Required - The date of the stock operation.
-- ```order```: Optional - The order of the operation, if multiple operations happened in the same day.
-- ```fees```: Optional - The value included in the transaction amount corresponding to fees. 
-- ```interest```: Optional - The value included in the transaction amount corresponding to interests.
-- ```cost_hist```: Optional - The historical amount representing the cost of the transaction.
+   **Transaction Properties**:
+   - `instrument`: **Required** - The instrument name or ticker.
+   - `quantity`: **Required** - The quantity of the instrument stock operation to track.
+   - `trade_date`: **Required** - The date of the stock operation.
+   - `order`: **Optional** - The order of the operation, if multiple operations happened in the same day.
+   - `fees`: **Optional** - The value included in the transaction amount corresponding to fees.
+   - `interest`: **Optional** - The value included in the transaction amount corresponding to interests.
+   - `cost_hist`: **Optional** - The amount representing the historical cost of the transaction. This property is necessary only if calculating realized results in **both** historical and fair basis.
 
 
 ## Realized Results Service
 
-The process of calculating realized results follows the FIFO method. In this process, the Stock Bot can record transactions in the Instruments and financial books. If a Base Book is defined in the collection, realized exchange results will be recorded separately from stock market realized results.
+The Stock Bot uses the FIFO ([First-In, First-Out](https://medium.com/magnimetrics/first-in-first-out-fifo-inventory-costing-f0bc00096a59)) method to calculate realized results, ensuring accurate tracking of gains and losses.
 
-When calculating realized results, the market value of remaining instruments can be automatically adjusted on Financial Books to match the last realized price of that instrument. This valuation procedure is known as [Mark-To-Market](https://www.investopedia.com/terms/m/marktomarket.asp). For liquidated Bonds instruments, the Stock Bot can also perform this valuation on associated Interest accounts.
+### Key Features:
 
-The Stock Bot adds the following properties to the generated transactions in the Instruments Book:
+- **Realized Results Tracking**: Accurately tracks gains and losses from trade operations using the FIFO method. The Stock Bot records these results in both the Instruments and Financial Books, and if a Base Book is defined, it separates realized exchange results from stock market results.
 
-- ```purchase_amount/fwd_purchase_amount```: The financial amount the instrument was bought.
-- ```purchase_price/fwd_purchase_price```: The unit price the instrument was bought.
-- ```purchase_exc_rate/fwd_purchase_exc_rate```: The exchange rate (local currency to base currency) when the instrument was bought.
-- ```sale_amount/fwd_sale_amount```: The financial amount the instrument was sold.
-- ```sale_price/fwd_sale_price```: The unit price the instrument was sold.
-- ```sale_exc_rate/fwd_sale_exc_rate```: The exchange rate (local currency to base currency) when the instrument was sold.
-- ```sale_date```: The date when the instrument was sold.
-- ```original_quantity```: The original quantity of the instrument (used to rebuild FIFO gains/losses if needed).
+- **Mark-to-Market Valuation**: Optionally, the Stock Bot can automatically adjust the market value of remaining instruments in Financial Books to match the last realized price. This procedure is known as [Mark-To-Market](https://www.investopedia.com/terms/m/marktomarket.asp). It is particularly useful for liquidated Bonds instruments, where the Stock Bot can also adjust associated Interest accounts.
 
-**Observations:**
-Other properties can be created by the Stock Bot when it runs a process, for operational and logging purposes. The properties starting with ```fwd``` above have the same meaning as their peers, but their values may differ if a [Forward Date](#forward-date-service) was set to that instrument. In that case, there are also other ```fwd``` properties, which are references that connect forwarded transactions to their logs.
+**Important:**
+The Stock Bot automatically adds properties to transactions in the Instruments Book when calculating realized results. These properties are used for state and log control. It also manages trade states by checking/unchecking transactions (see [Transaction States](https://help.bkper.com/en/articles/2569149-transaction-status)). These properties and states **must not** be manually altered.
 
 
 ## Forward Date Service
 
-In order to [close a period](https://help.bkper.com/en/articles/6000644-closing-a-period) and [set a closing date](https://help.bkper.com/en/articles/5100445-book-closing-and-lock-dates) to the Stock Book, instruments must be carried to the next period. The proper way to do so is by setting a Forward Date to the accounts in the Instruments Book.
+To [close a period](https://help.bkper.com/en/articles/6000644-closing-a-period) and [set a closing date](https://help.bkper.com/en/articles/5100445-book-closing-and-lock-dates) for the Stock Book, instruments must be carried forward to the next period by setting a Forward Date in the Instruments Book.
 
-Each unchecked transaction will have its date, price and exchange rate updated to the current valuation, leaving a log of its previous state behind. When the last instrument is successfully forwarded a closing date will be set on the Stock Book one day before the Forward Date.
+Each unprocessed transaction will have its date, price, and exchange rate updated to the current valuation, while retaining a log of its previous state. Once the last instrument is forwarded, a closing date is set on the Stock Book one day before the Forward Date.
 
-Once an instrument is forwarded, future FIFO calculations will consider the new Forward valuation. In order to calculate gains/losses only over the historical basis, the property ```stock_historical``` must be ```true``` on the Instruments Book.
+After forwarding, future FIFO calculations will use the new Forward valuation. To calculate gains/losses solely on a historical basis, ensure the `stock_historical` property is set to `true` in the Instruments Book.
 
-When forwarding instruments, the Stock Bot also adds the following properties to the forwarded transactions:
-
-- ```date```: The date when the transaction has occurred.
-- ```hist_order```: The historical index the transaction had before being forwarded.
-- ```hist_quantity```: The historical quantity of the instrument (used to rebuild FIFO gains/losses if needed).
-- ```fwd_log```: The id of the forwarded transaction previous state (a copy of the transaction before being forwarded).
+**Important:**
+The Stock Bot automatically adds properties to transactions in the Instruments Book during the forwarding process. These properties are used for state and log control and **must not** be manually altered.
