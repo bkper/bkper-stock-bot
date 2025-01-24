@@ -297,11 +297,14 @@ namespace RealizedResultsService {
                 }
 
                 purchaseTransaction
-                    .setProperty(PURCHASE_PRICE_PROP, purchasePrice.toString())
                     .setProperty(PURCHASE_AMOUNT_PROP, purchaseAmount.toString())
                     .setProperty(PURCHASE_EXC_RATE_PROP, purchaseExcRate?.toString())
                     .setProperty(FWD_PURCHASE_AMOUNT_PROP, fwdPurchaseAmount?.toString())
                 ;
+                // Avoid overriding purchase_price prop when purchase_price_hist value is present
+                if (!purchaseTransaction.getProperty(PURCHASE_PRICE_HIST_PROP)) {
+                    purchaseTransaction.setProperty(PURCHASE_PRICE_PROP, purchasePrice.toString());
+                }
                 if (shortSale) {
                     shortSaleLiquidationLogEntries.push(logLiquidation(purchaseTransaction, purchasePrice, purchaseExcRate));
                     purchaseTransaction
