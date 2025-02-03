@@ -59,6 +59,11 @@ To configure the Bkper Stock Bot, ensure the following setup:
    - `fees`: **Optional** - The value included in the transaction amount corresponding to fees.
    - `interest`: **Optional** - The value included in the transaction amount corresponding to interests.
    - `cost_hist`: **Optional** - The amount representing the historical cost of the transaction. This property is necessary only if calculating realized results in **both** historical and fair basis.
+   - `cost_base`: **Optional** - The amount representing the cost of the transaction in the base currency. Providing a `cost_base` effectively fixes a specific exchange rate for the operation, as it determines a unique ratio between the instrument currency and the base currency.
+   - `cost_hist_base`: **Optional** - The amount representing the historical cost of the transaction in the base currency. Providing a `cost_hist_base` also fixes a specific historical exchange rate for the operation. This property is necessary only if calculating realized results in **both** historical and fair basis.
+
+   **Observations:**
+   Neither `cost_base` nor `cost_hist_base` properties are necessary if there is no Base Book defined in the collection.
 
 
 ## Realized Results Service
